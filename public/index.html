@@ -275,7 +275,7 @@ pre.rcpt{background:#fff;border:1px dashed var(--line);border-radius:10px;paddin
 <div id="modal" class="modal hidden"><div class="modal-card"><button class="x" data-act="close" aria-label="Đóng">×</button><div id="modal-body"></div></div></div>
 <div id="toast"></div>
 <div id="print-area"></div>
-<input type="file" id="file-pick" accept="image/*" hidden>
+<input type="file" id="file-pick" accept="image/*,.heic,.heif" hidden>
 <datalist id="dl-models"></datalist>
 <datalist id="dl-colors"></datalist>
 <datalist id="dl-storage"></datalist>
@@ -680,7 +680,7 @@ function aPho(){
   const units=S.inv.filter(x=>x.status!=='sold'&&(!onlyNew||x.condition==='new'));
   const models={};units.forEach(u=>{const mm=models[u.model]=models[u.model]||{model:u.model,cat:catOf(u),colors:{}};mm.colors[u.color||'']=u});
   const list=Object.values(models).sort((a,b)=>CATS.indexOf(a.cat)-CATS.indexOf(b.cat)||String(b.model).localeCompare(a.model,'vi',{numeric:true}));
-  const btn=(key,label,model,color)=>ASSETS&&W_OK()?`<button class="btn sm ${m[key]?'':'btn-ink'}" data-act="pickPhoto" data-kind="photo" data-key="${esc(key)}" data-model="${esc(model)}" data-color="${esc(color||'')}">${m[key]?'Đổi ảnh':label}</button>${m[key]?`<button class="btn sm ghost" data-act="rmPhoto" data-key="${esc(key)}">Gỡ</button>`:''}`:'';
+  const btn=(key,label,model,color)=>ASSETS&&W_OK()?`<button class="btn sm ${m[key]?'':'btn-ink'}" data-act="pickPhoto" data-kind="photo" data-key="${esc(key)}" data-model="${esc(model)}" data-color="${esc(color||'')}">${m[key]?'Đổi ảnh':label}</button><button class="btn sm ghost" title="Dán ảnh đã copy" data-act="pastePhoto" data-kind="photo" data-key="${esc(key)}" data-model="${esc(model)}" data-color="${esc(color||'')}">📋</button>${m[key]?`<button class="btn sm ghost" data-act="rmPhoto" data-key="${esc(key)}">Gỡ</button>`:''}`:'';
   let h=hd('Ảnh sản phẩm','Tải ảnh chụp thật để hiện trên website thay cho hình minh họa. Ảnh theo màu được ưu tiên, nếu không có sẽ dùng ảnh chung của dòng máy.');
   if(!ASSETS)h+=`<div class="banner">Chỉ tài khoản có quyền chỉnh sửa trang mới tải ảnh lên được.</div>`;
   h+=`<div class="toolbar"><div class="chips"><button class="chip ${onlyNew?'on':''}" data-act="set" data-k="phoNew" data-v="1">Sản phẩm mới</button><button class="chip ${onlyNew?'':'on'}" data-act="set" data-k="phoNew" data-v="0">Tất cả (mới & cũ)</button></div><span class="muted" style="font-size:13px">Máy cũ có thể gắn ảnh riêng từng máy ở mục Kho máy → “Ảnh máy”.</span></div>`;
@@ -902,11 +902,11 @@ function invFormHTML(x){x=x||{condition:'used',warrantyMonths:6,status:'instock'
   <div><label>Bảo hành (tháng)</label><input name="warrantyMonths" inputmode="numeric" value="${esc(x.warrantyMonths??'')}"></div>
   ${x.id?`<div><label>Trạng thái</label><select name="status">${Object.entries(INV_ST).map(([k,[l]])=>`<option value="${k}" ${sel(x.status,k)}>${l}</option>`).join('')}</select></div>`:''}
   <div class="full"><label>Ghi chú (hiện cho khách)</label><input name="note" value="${esc(x.note||'')}" placeholder="Ví dụ: máy zin, trầy nhẹ viền"></div>
-  <div class="full"><label>Ảnh máy</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Chọn nhiều ảnh một lần. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Máy cũ nên chụp đủ mặt trước, mặt sau, 4 cạnh, màn hình sáng, ảnh pin.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa trang mới tải ảnh được.</div>`}</div>
+  <div class="full"><label>Ảnh máy</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Chọn nhiều ảnh một lần. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Máy cũ nên chụp đủ mặt trước, mặt sau, 4 cạnh, màn hình sáng, ảnh pin.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button><button type="button" class="btn sm ghost" style="margin:8px 0 0 6px" data-act="pastePhoto" data-kind="form">📋 Dán ảnh đã copy</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa trang mới tải ảnh được.</div>`}</div>
   </div><div class="foot"><button type="button" class="btn ghost" data-act="close">Hủy</button><button class="btn btn-red">${x.id?'Lưu':'Nhập kho'}</button></div></form>`}
 function accFormHTML(a){a=a||{category:'Sạc'};return `<h2>${a.id?'Sửa phụ kiện':'Thêm phụ kiện'}</h2><form data-form="acc"><input type="hidden" name="id" value="${esc(a.id||'')}"><div class="fgrid" style="margin-top:12px">
   <div class="full"><label>Tên *</label><input name="name" required value="${esc(a.name||'')}"></div>
-  <div class="full"><label>Ảnh phụ kiện</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Có thể chọn nhiều ảnh. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Không có ảnh thì web hiện biểu tượng theo loại.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa mới tải ảnh được.</div>`}</div>
+  <div class="full"><label>Ảnh phụ kiện</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Có thể chọn nhiều ảnh. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Không có ảnh thì web hiện biểu tượng theo loại.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button><button type="button" class="btn sm ghost" style="margin:8px 0 0 6px" data-act="pastePhoto" data-kind="form">📋 Dán ảnh đã copy</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa mới tải ảnh được.</div>`}</div>
   <div><label>Loại</label><select name="category">${ACC_CATS.map(c=>`<option ${a.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
   <div><label>Số lượng tồn</label><input name="qty" inputmode="numeric" value="${esc(a.qty??0)}"></div>
   ${isOwner()?`<div><label>Giá nhập</label><input name="cost" inputmode="numeric" value="${esc(a.cost??'')}"></div>`:''}
@@ -967,7 +967,7 @@ const ACT={
   scroll:d=>{const el=document.getElementById(d.to);if(!el)return;const sc=$('#pv-scroll');if(sc&&sc.contains(el)){sc.scrollTo({top:el.offsetTop-70,behavior:'smooth'});return}window.scrollTo({top:el.getBoundingClientRect().top+scrollY-110,behavior:'smooth'})},
   sf:d=>{S.shopFilter=d.v;render()},
   set:d=>{S[d.k]=d.k==='phoNew'?d.v==='1':d.k==='pvMob'?d.v==='1':d.v;render()},
-  pickPhoto:d=>{S.pick={...d};const f=$('#file-pick');f.multiple=d.kind==='unit';f.value='';f.click()},
+  pickPhoto:d=>{S.pick={...d};S.lastPick={t:{...d},at:Date.now()};const f=$('#file-pick');f.multiple=d.kind==='unit';f.value='';f.click()},
   unitView:(d,el,e)=>{if(e)e.preventDefault();const u=S.inv.find(x=>x.id===d.id);if(!u)return;const ims=unitImgs(u);const gk=u.model+'|'+(u.condition==='new'?'new':'used');
     setHash('may-'+u.id);
     openModal(`<div data-unit-open="${esc(u.id)}"></div><div class="gal-main" id="gal-main">${ims.length?`<img src="${esc(imgUrl(ims[0]))}" alt="${esc(u.model)}">`:devSVG(catOf(u),u.color)}</div>
@@ -985,7 +985,7 @@ const ACT={
   unitPhotos:d=>{const u=S.inv.find(x=>x.id===d.id);if(!u)return;const ims=unitImgs(u);
     openModal(`<h2>Ảnh máy ${esc(u.model)} ${esc(u.storage||'')}</h2><p class="muted" style="margin:0">${esc(u.color)} · IMEI ${esc(u.imei||'—')}. Chụp đủ các góc: mặt trước, mặt sau, 4 cạnh viền, màn hình sáng, ảnh pin. Ảnh đầu tiên là ảnh bìa trên website.</p>
     <div class="ph-edit">${ims.map((id,i)=>`<div><img src="${esc(imgUrl(id))}" alt=""><div class="acts">${i?`<button class="btn sm" data-act="unitImgCover" data-id="${esc(u.id)}" data-img="${esc(id)}">Làm ảnh bìa</button>`:pill('Ảnh bìa','green')}<button class="btn sm ghost" data-act="unitImgDel" data-id="${esc(u.id)}" data-img="${esc(id)}">Xóa</button></div></div>`).join('')||'<p class="muted">Chưa có ảnh nào.</p>'}</div>
-    <div class="foot"><button class="btn ghost" data-act="close">Xong</button><button class="btn btn-red" data-act="pickPhoto" data-kind="unit" data-id="${esc(u.id)}" ${ASSETS&&W_OK()?'':'disabled'}>+ Thêm ảnh (chọn nhiều)</button></div>`)},
+    <div class="foot"><button class="btn ghost" data-act="close">Xong</button><button class="btn btn-red" data-act="pickPhoto" data-kind="unit" data-id="${esc(u.id)}" ${ASSETS&&W_OK()?'':'disabled'}>+ Thêm ảnh (chọn nhiều)</button><button class="btn sm ghost" data-act="pastePhoto" data-kind="unit" data-id="${esc(u.id)}" ${ASSETS&&W_OK()?'':'disabled'}>📋 Dán ảnh</button></div>`)},
   unitImgCover:async d=>{const u=S.inv.find(x=>x.id===d.id);if(!u)return;const ims=[d.img,...unitImgs(u).filter(x=>x!==d.img)];if(await W(()=>col('inventory').doc(u.id).update({imgs:ims,img:''}),'Đã đổi ảnh bìa'))setTimeout(()=>ACT.unitPhotos({id:u.id}),250)},
   unitImgDel:async d=>{const u=S.inv.find(x=>x.id===d.id);if(!u)return;const ims=unitImgs(u).filter(x=>x!==d.img);if(await W(()=>col('inventory').doc(u.id).update({imgs:ims,img:''}),'Đã xóa ảnh')){if(ASSETS){await delAsset(d.img)}setTimeout(()=>ACT.unitPhotos({id:u.id}),250)}},
   rmPhoto:d=>{openModal(`<h2>Gỡ ảnh này?</h2><p class="muted">Website sẽ quay lại dùng ảnh chung hoặc hình minh họa.</p><div class="foot"><button class="btn ghost" data-act="close">Không</button><button class="btn btn-red" data-act="rmPhotoYes" data-key="${esc(d.key)}">Gỡ ảnh</button></div>`)},
@@ -1096,6 +1096,9 @@ const ACT={
   invClear:()=>{S.invF={};S.invQ='';S.invCat='all';render()},
   invDup:d=>{const x=S.inv.find(i=>i.id===d.id);if(!x)return;const c={...x,id:'',imei:'',status:'instock',orderCode:'',createdAt:now()};delete c.soldAt;S.formImgs=unitImgs(x).slice();S.formOrig=[];
     openModal(invFormHTML(c).replace('<h2>Nhập máy vào kho</h2>',`<h2>Nhân bản máy</h2><p class="muted" style="margin:0">Sao chép từ ${esc(x.model)} ${esc(x.storage||'')} ${esc(x.color)}${x.imei?' (IMEI …'+esc(String(x.imei).slice(-5))+')':''}. Chỉ cần nhập IMEI máy mới, sửa chỗ khác nếu cần.</p>`));renderFormImgs()},
+  pastePhoto:async d=>{if(!navigator.clipboard||!navigator.clipboard.read)return toast('Trình duyệt chưa hỗ trợ, hãy bấm Ctrl/⌘+V');
+    try{const items=await navigator.clipboard.read();const blobs=[];for(const it of items){const ty=it.types.find(x=>x.startsWith('image/'));if(ty)blobs.push(await it.getType(ty))}
+      if(!blobs.length)return toast('Trong bộ nhớ tạm chưa có ảnh. Hãy copy một ảnh trước');const t={...d};delete t.act;onFiles(blobs,t)}catch(e){console.error(e);toast('Chưa đọc được ảnh đã copy (cần cho phép dán)')}},
   formPick:()=>{S.pick={kind:'form'};const f=$('#file-pick');f.multiple=true;f.value='';f.click()},
   fimgCover:d=>{const i=+d.i;const id=S.formImgs.splice(i,1)[0];S.formImgs.unshift(id);renderFormImgs()},
   fimgDel:d=>{S.formImgs.splice(+d.i,1);renderFormImgs()},
@@ -1253,16 +1256,24 @@ document.addEventListener('change',e=>{const el=e.target;if(el.dataset.chg&&CHG[
 function renderFormImgs(){const el=$('#f-imgs');if(!el)return;const a=S.formImgs||[];
   el.innerHTML=a.length?`<div class="ph-edit" style="margin-top:0">${a.map((id,i)=>`<div style="${i?'':'outline:2px solid var(--green)'}"><img src="${esc(imgUrl(id))}" alt="" data-act="fimgCover" data-i="${i}" style="cursor:pointer" title="Đặt làm ảnh chính"><div class="acts">${i?`<button type="button" class="btn sm" data-act="fimgCover" data-i="${i}">Làm ảnh chính</button>`:pill('Ảnh chính','green')}<button type="button" class="btn sm ghost" data-act="fimgDel" data-i="${i}">Xóa</button></div></div>`).join('')}</div>`:'<div class="muted" style="font-size:13px">Chưa có ảnh.</div>'}
 async function delAsset(id){if(!ASSETS||!id)return;await new Promise(r=>setTimeout(r,500));const used=S.inv.some(u=>unitImgs(u).includes(id))||S.photos.some(p=>p.img===id);if(!used){try{await ASSETS.delete(id)}catch(e){}}}
-async function shrink(file){try{const bmp=await createImageBitmap(file);const s=Math.min(1,1200/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/webp',.86));return b&&b.size?b:file}catch(e){return file}}
-$('#file-pick').addEventListener('change',async e=>{const files=[...(e.target.files||[])];const f=files[0];const t=S.pick;if(!f||!t)return;if(!ASSETS)return toast('Bạn chưa có quyền tải ảnh');
-  if(t.kind==='form'){for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});(S.formImgs=S.formImgs||[]).push(r.id);renderFormImgs()}catch(err){console.error(err);toast('Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}toast('Đã tải ảnh xong, nhớ bấm Lưu');S.pick=null;return}
-  if(t.kind==='unit'){const ids=[];for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});ids.push(r.id)}catch(err){console.error(err);toast('Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}
+const isHeic=f=>/hei[cf]/i.test(f.type||'')||/\.hei[cf]$/i.test(f.name||'');
+let _heic;function loadHeic(){return _heic||(_heic=new Promise((ok,no)=>{const s=document.createElement('script');s.src='/heic2any.min.js';s.onload=()=>ok(window.heic2any);s.onerror=()=>{_heic=null;no(new Error('heic'))};document.head.appendChild(s)}))}
+async function shrink(file){if(isHeic(file)){try{await createImageBitmap(file)}catch(e){try{toast('Đang chuyển ảnh iPhone (HEIC) sang JPG…');const h2a=await loadHeic();let j=await h2a({blob:file,toType:'image/jpeg',quality:.9});if(Array.isArray(j))j=j[0];file=j}catch(err){const e2=new Error('heic');e2.code='heic';throw e2}}}
+  return shrink0(file)}
+async function shrink0(file){try{const bmp=await createImageBitmap(file);const s=Math.min(1,1200/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*s);c.height=Math.round(bmp.height*s);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);const b=await new Promise(r=>c.toBlob(r,'image/webp',.86));return b&&b.size?b:file}catch(e){return file}}
+document.addEventListener('paste',e=>{const files=[...((e.clipboardData&&e.clipboardData.files)||[])].filter(f=>/^image\//.test(f.type)||isHeic(f));if(!files.length||!ASSETS)return;
+  let t=null;const md=$('#modal:not(.hidden)');if(md&&md.querySelector('#f-imgs'))t={kind:'form'};else{const ub=md&&md.querySelector('[data-act="pickPhoto"][data-kind="unit"]');if(ub)t={kind:'unit',id:ub.dataset.id};else if(S.lastPick&&Date.now()-S.lastPick.at<120000)t=S.lastPick.t}
+  if(!t)return toast('Mở ô thêm ảnh trước rồi dán (Ctrl/⌘+V)');e.preventDefault();onFiles(files,t)});
+$('#file-pick').addEventListener('change',e=>onFiles([...(e.target.files||[])],S.pick));
+async function onFiles(files,t){const f=files[0];if(!f||!t)return;if(!ASSETS)return toast('Bạn chưa có quyền tải ảnh');
+  if(t.kind==='form'){for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});(S.formImgs=S.formImgs||[]).push(r.id);renderFormImgs()}catch(err){console.error(err);toast(err&&err.code==='heic'?'Không đọc được ảnh HEIC, thử lại hoặc chụp màn hình rồi dán':'Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}toast('Đã tải ảnh xong, nhớ bấm Lưu');S.pick=null;return}
+  if(t.kind==='unit'){const ids=[];for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});ids.push(r.id)}catch(err){console.error(err);toast(err&&err.code==='heic'?'Không đọc được ảnh HEIC, thử lại hoặc chụp màn hình rồi dán':'Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}
     if(ids.length){const u=S.inv.find(x=>x.id===t.id);const ims=[...unitImgs(u),...ids];if(await W(()=>col('inventory').doc(t.id).update({imgs:ims,img:''}),`Đã thêm ${ids.length} ảnh`))setTimeout(()=>ACT.unitPhotos({id:t.id}),250)}
     S.pick=null;return}
   toast('Đang tải ảnh lên…');let up;try{const b=await shrink(f);up=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'})}catch(err){console.error(err);return toast(err&&err.code==='too_large'?'Ảnh quá lớn':err&&err.code==='unsupported_type'?'Định dạng ảnh không hỗ trợ (dùng JPG, PNG, WEBP)':'Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}
   if(t.kind==='unit'){const u=S.inv.find(x=>x.id===t.id);const old=u&&u.img;if(await W(()=>col('inventory').doc(t.id).update({img:up.id}),'Đã gắn ảnh cho máy')&&old){await delAsset(old)}}
   else{const old=(S.photos.find(x=>x.id===t.key)||{}).img;if(await W(()=>col('photos').doc(t.key).set({model:t.model,color:t.color||'',img:up.id,updatedAt:now()}),'Đã cập nhật ảnh')&&old){await delAsset(old)}}
-  S.pick=null});
+  S.pick=null}
 window.addEventListener('hashchange',()=>{if(/^#may-/.test(location.hash)){const open=$('#modal-body [data-unit-open]');if(!open||open.dataset.unitOpen!==location.hash.slice(5))openFromHash();return}const v=location.hash==='#admin'?'admin':location.hash==='#shop'?'shop':null;if(v&&v!==S.view){S.view=v;render()}});
 
 /* ================= boot (Firebase) ================= */
