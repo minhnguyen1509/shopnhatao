@@ -1,6 +1,7 @@
 // Gắn ảnh nhóm cho phụ kiện theo tiền tố tên (chỉ gắn cho món chưa có ảnh)
-const { initializeApp, cert } = require('../functions/node_modules/firebase-admin/app');
-const { getFirestore } = require('../functions/node_modules/firebase-admin/firestore');
+const R = (m) => require(require.resolve(m, { paths: [__dirname + '/../functions'] }));
+const { initializeApp, cert } = R('firebase-admin/app');
+const { getFirestore } = R('firebase-admin/firestore');
 const map = require('./acc-img.json');
 initializeApp({ credential: cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)) });
 const db = getFirestore();
