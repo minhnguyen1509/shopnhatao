@@ -576,6 +576,7 @@ function ordTable(list,compact){
 }
 function ordActs(o){
   const b=[];
+  if(o.status!=='cancelled')b.push(`<button class="btn sm ghost" data-act="ordEdit" data-id="${esc(o.id)}">Sửa đơn</button>`);
   if(o.status==='pending')b.push(`<button class="btn sm btn-ink" data-act="ordSet" data-id="${esc(o.id)}" data-v="confirmed">Đã gọi xác nhận</button>`);
   if(o.status==='pending'||o.status==='confirmed')b.push(`<button class="btn sm btn-green" data-act="ordSet" data-id="${esc(o.id)}" data-v="done">Giao xong</button>`,`<button class="btn sm ghost" data-act="ordSet" data-id="${esc(o.id)}" data-v="cancelled">Hủy</button>`);
   if(o.status==='done')b.push(`<button class="btn sm ghost" data-act="receipt" data-id="${esc(o.id)}">Hóa đơn</button>`,`<button class="btn sm ghost" data-act="ordReturn" data-id="${esc(o.id)}">Trả hàng</button>`);
@@ -1019,6 +1020,21 @@ const ACT={
     if(v==='cancelled'){return openModal(`<h2>Hủy đơn ${esc(o.code)}?</h2><p class="muted">Máy đang giữ cọc sẽ trở lại kho và hiện lại trên website. Nhớ hoàn cọc cho khách nếu có.</p><div class="foot"><button class="btn ghost" data-act="close">Không</button><button class="btn btn-red" data-act="ordCancel" data-id="${esc(o.id)}">Hủy đơn</button></div>`)}
     if(v==='confirmed')return W(()=>col('orders').doc(o.id).update({status:'confirmed',staff:S.staff,confirmedAt:now()}),'Đã xác nhận đơn');
     if(v==='done'){const ok=await W(async()=>{await col('orders').doc(o.id).update({status:'done',doneAt:now(),staff:S.staff});await applyDone(o.items||[],o.code)},'Đã hoàn tất đơn, máy đã trừ kho');if(ok)ACT.receipt({id:o.id})}},
+  ordEdit:d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;const its=o.items||[];const stf=[...new Set([o.staff,...activeStaff().map(s=>s.name)].filter(Boolean))];
+    const dd=new Date((o.doneAt||o.createdAt||now())+7*3600e3).toISOString().slice(0,10);
+    openModal(`<h2>Sửa đơn · ${esc(o.code)}</h2><form data-form="ordEdit"><input type="hidden" name="id" value="${esc(o.id)}">
+    <div class="fgrid"><div><label>Tên khách</label><input name="customerName" value="${esc(o.customerName||'')}"></div><div><label>SĐT</label><input name="phone" inputmode="tel" value="${esc(o.phone||'')}"></div>
+    <div><label>Địa chỉ</label><input name="customerAddress" value="${esc(o.customerAddress||'')}"></div><div><label>Email</label><input name="customerEmail" type="email" value="${esc(o.customerEmail||'')}"></div>
+    <div><label>Nhân viên bán</label><select name="staff"><option value="">—</option>${stf.map(n=>`<option ${n===o.staff?'selected':''}>${esc(n)}</option>`).join('')}</select></div>
+    <div><label>Thanh toán</label><select name="pay"><option value="">—</option>${['Tiền mặt','Chuyển khoản','Quẹt thẻ','Trả góp'].map(x=>`<option ${o.pay===x?'selected':''}>${x}</option>`).join('')}</select></div>
+    ${o.status==='done'||o.status==='returned'?`<div><label>Ngày bán</label><input name="doneDate" type="date" value="${dd}"></div>`:''}${o.source==='web'?`<div><label>Tiền cọc</label><input name="deposit" inputmode="numeric" value="${+o.deposit||0}"></div>`:''}
+    <div class="full"><label>Ghi chú</label><input name="note" value="${esc(o.note||'')}"></div></div>
+    <h3 style="margin:16px 0 6px">Sản phẩm</h3><div class="ret-list" style="margin-top:0">${its.map((it,i)=>`<div class="ret-it"><div class="fgrid" style="margin:0"><div class="full"><label>Tên sản phẩm${it.gift?' (quà tặng)':''}${retQ(it)?` · đã trả ${retQ(it)}`:''}</label><input name="n${i}" value="${esc(it.name||'')}"></div>
+      ${it.kind==='svc'?'':`<div><label>Serial/IMEI</label><input name="s${i}" value="${esc(it.imei||'')}"></div><div><label>Tình trạng</label><input name="c${i}" value="${esc(it.cond||'')}" placeholder="${esc(itemCond(it))}"></div>`}
+      <div><label>Bảo hành (tháng)</label><input name="w${i}" inputmode="numeric" value="${+it.warrantyMonths||0}"></div><div><label>Đơn giá${(+it.qty||1)>1?' (×'+it.qty+')':''}</label><input name="p${i}" inputmode="numeric" value="${+it.price||0}"></div></div></div>`).join('')}</div>
+    <div class="fgrid" style="margin-top:12px"><div><label>Chương trình khuyến mại</label><input name="promo" value="${esc(o.promo||'')}"></div><div><label>Giảm giá đơn</label><input name="disc" value="${+o.discount||''}" placeholder="500000 hoặc 5%"></div></div>
+    <p class="muted" style="font-size:12.5px;margin:10px 0 0">Tổng tiền tự tính lại theo đơn giá và giảm giá. Đổi máy khác thì hủy đơn rồi tạo đơn mới.</p>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">Lưu thay đổi</button></div></form>`)},
   ordReturn:d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;const its=(o.items||[]).map((it,i)=>({it,i,rq:remQ(it)})).filter(x=>x.rq>0);
     if(!its.length)return toast('Đơn này đã trả hết hàng');
     openModal(`<h2>Khách trả hàng · ${esc(o.code)}</h2><p class="muted" style="margin-top:0">${esc(o.customerName||'Khách lẻ')}${o.phone?' · '+esc(o.phone):''} · Tổng đơn ${money(o.total)}${o.refundTotal?' · đã hoàn '+money(o.refundTotal):''}</p>
@@ -1119,6 +1135,14 @@ async function applyDone(items,code){for(const it of items){if(it.kind==='svc')c
 const num=v=>{const n=+String(v??'').replace(/[^\d]/g,'');return isNaN(n)?0:n};
 function demoDone_unused(t,b){openModal(`<h2>${t}</h2><p>${b}</p><div class="banner" style="margin-top:12px">Bản xem trước: đơn này <b>không được lưu</b>. Khi chạy bằng tên miền riêng, đơn sẽ vào mục Đơn hàng / Sửa chữa và nhân viên nhận thông báo.</div><div class="foot"><button class="btn btn-ink" data-act="close">Đóng</button></div>`)}
 const FORM={
+  ordEdit:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;
+    const items=(o.items||[]).map((it,i)=>{const x={...it};if(v['n'+i]!=null&&String(v['n'+i]).trim())x.name=String(v['n'+i]).trim();if(v['s'+i]!=null)x.imei=String(v['s'+i]).trim().toUpperCase();if(v['c'+i]!=null)x.cond=String(v['c'+i]).trim();if(v['w'+i]!=null)x.warrantyMonths=num(v['w'+i]);if(v['p'+i]!=null)x.price=num(v['p'+i]);return x});
+    const subtotal=items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const discount=discAmt(v.disc,subtotal);const total=Math.max(0,subtotal-discount);
+    const d={customerName:String(v.customerName||'').trim()||'Khách lẻ',phone:normPhone(v.phone),customerAddress:String(v.customerAddress||'').trim(),customerEmail:String(v.customerEmail||'').trim(),staff:v.staff||'',pay:v.pay||'',note:String(v.note||'').trim(),items,subtotal,discount,promo:String(v.promo||'').trim(),total,editedAt:now(),editedBy:S.staff||''};
+    if(v.deposit!=null)d.deposit=num(v.deposit);
+    if(v.doneDate){const [y,m,dd]=v.doneDate.split('-').map(Number);const old=new Date((o.doneAt||now())+7*3600e3);const t=Date.UTC(y,m-1,dd,old.getUTCHours(),old.getUTCMinutes())-7*3600e3;if(t&&Math.abs(t-(o.doneAt||0))>60000)d.doneAt=t}
+    if(o.paid!=null&&+o.paid===+o.total)d.paid=total;
+    const ok=await W(()=>col('orders').doc(o.id).update(d),'Đã lưu đơn '+o.code);if(ok)closeModal()},
   ordReturn:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;const items=(o.items||[]).map(it=>({...it}));const ri=[];let sum=0;
     items.forEach((it,i)=>{if(!v['r'+i])return;const rq=remQ(it);if(rq<=0)return;const q=Math.min(rq,Math.max(1,Math.round(+v['q'+i]||rq)));ri.push({i,qty:q,restock:it.kind!=='svc'&&!!v['k'+i]});it.retQty=retQ(it)+q;sum+=(+it.price||0)*q});
     if(!ri.length)return toast('Chọn ít nhất một món khách trả');
