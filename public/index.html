@@ -491,7 +491,7 @@ function shopGrid(){
   if(!items.length)return `<div class="empty" style="grid-column:1/-1">${Object.keys(KEY).every(k=>S.loaded[k])?'Chưa có sản phẩm phù hợp. Inbox shop để được báo hàng sắp về nhé!':'Đang tải sản phẩm…'}</div>`;
   return items.map(i=>{
     if(i.t==='g'){const g=i.g;return `<button class="card" data-act="group" data-key="${esc(g.key)}"><div class="card-img">${devImg(g.units.find(u=>photoOf(u))||g.units[0],g.cat)}<span class="badge">${g.cond==='new'?pill('Mới 100%','green'):pill('Máy cũ','amber')}</span></div><div class="card-body"><h3>${esc(g.model)}</h3><div class="chips-sm">${g.storages.map(s=>`<span>${esc(s)}</span>`).join('')}</div><div class="dots">${g.colors.map(c=>`<i style="background:${colorHex(c)}" title="${esc(c)}"></i>`).join('')}</div><div class="price">${g.units.length>1?'<small>từ</small> ':''}${money(g.min)}</div><div class="stock">Còn ${g.units.length} chiếc</div></div></button>`}
-    const a=i.a;return `<button class="card" data-act="accview" data-id="${esc(a.id)}"><div class="card-img"><span class="emo">${ACC_EMO[a.category]||'🧩'}</span><span class="badge">${pill(a.category||'Phụ kiện','blue')}</span></div><div class="card-body"><h3>${esc(a.name)}</h3><div class="price">${money(a.price)}</div><div class="stock">${(+a.qty)>5?'Còn hàng':'Chỉ còn '+(+a.qty)}</div></div></button>`;
+    const a=i.a;return `<button class="card" data-act="accview" data-id="${esc(a.id)}"><div class="card-img">${unitImgs(a).length?`<img class="pimg" src="${esc(imgUrl(unitImgs(a)[0]))}" alt="${esc(a.name)}" loading="lazy">`:`<span class="emo">${ACC_EMO[a.category]||'🧩'}</span>`}<span class="badge">${pill(a.category||'Phụ kiện','blue')}</span></div><div class="card-body"><h3>${esc(a.name)}</h3><div class="price">${money(a.price)}</div><div class="stock">${(+a.qty)>5?'Còn hàng':'Chỉ còn '+(+a.qty)}</div></div></button>`;
   }).join('');
 }
 function svcTable(admin){
@@ -900,6 +900,7 @@ function invFormHTML(x){x=x||{condition:'used',warrantyMonths:6,status:'instock'
   </div><div class="foot"><button type="button" class="btn ghost" data-act="close">Hủy</button><button class="btn btn-red">${x.id?'Lưu':'Nhập kho'}</button></div></form>`}
 function accFormHTML(a){a=a||{category:'Sạc'};return `<h2>${a.id?'Sửa phụ kiện':'Thêm phụ kiện'}</h2><form data-form="acc"><input type="hidden" name="id" value="${esc(a.id||'')}"><div class="fgrid" style="margin-top:12px">
   <div class="full"><label>Tên *</label><input name="name" required value="${esc(a.name||'')}"></div>
+  <div class="full"><label>Ảnh phụ kiện</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Có thể chọn nhiều ảnh. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Không có ảnh thì web hiện biểu tượng theo loại.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa mới tải ảnh được.</div>`}</div>
   <div><label>Loại</label><select name="category">${ACC_CATS.map(c=>`<option ${a.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
   <div><label>Số lượng tồn</label><input name="qty" inputmode="numeric" value="${esc(a.qty??0)}"></div>
   ${isOwner()?`<div><label>Giá nhập</label><input name="cost" inputmode="numeric" value="${esc(a.cost??'')}"></div>`:''}
@@ -999,7 +1000,7 @@ const ACT={
     <p class="muted" style="font-size:13px">Máy được giữ 24 giờ sau khi nhân viên gọi xác nhận. Tiền cọc trừ vào giá khi nhận máy.</p>
     <div class="foot"><button type="button" class="btn ghost" data-act="close">Để sau</button><button class="btn btn-red">Gửi đơn cọc</button></div></form>`)},
   accview:d=>{const a=S.acc.find(x=>x.id===d.id);if(!a)return;
-    openModal(`<div class="det"><div class="det-img"><span style="font-size:70px">${ACC_EMO[a.category]||'🧩'}</span></div><div><h2>${esc(a.name)}</h2><div class="price" style="font-size:22px">${money(a.price)}</div><div class="stock">${(+a.qty)>5?'Còn hàng':'Chỉ còn '+(+a.qty)}</div></div></div>
+    openModal(`<div class="det"><div class="det-img">${unitImgs(a).length?`<img class="pimg" src="${esc(imgUrl(unitImgs(a)[0]))}" alt="${esc(a.name)}">`:`<span style="font-size:70px">${ACC_EMO[a.category]||'🧩'}</span>`}</div><div><h2>${esc(a.name)}</h2><div class="price" style="font-size:22px">${money(a.price)}</div><div class="stock">${(+a.qty)>5?'Còn hàng':'Chỉ còn '+(+a.qty)}</div></div></div>
     <form data-form="accorder"><input type="hidden" name="id" value="${esc(a.id)}"><div class="fgrid"><div><label>Họ tên *</label><input name="name" required></div><div><label>Số điện thoại *</label><input name="phone" required inputmode="tel"></div><div><label>Số lượng</label><input name="qty" type="number" min="1" max="${+a.qty}" value="1"></div><div><label>Ghi chú</label><input name="note" placeholder="Lấy tại shop / giao hàng"></div></div>
     <div class="foot"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">Đặt giữ hàng</button></div></form>`)},
   book:()=>{const opts=S.svc.slice().sort((a,b)=>String(a.model).localeCompare(b.model,'vi',{numeric:true})).map(s=>`<option value="${esc(s.model+' – '+s.name)}">${esc(s.model)} – ${esc(s.name)} (${+s.price?money(s.price):'báo giá sau'})</option>`).join('');
@@ -1077,7 +1078,7 @@ const ACT={
   formPick:()=>{S.pick={kind:'form'};const f=$('#file-pick');f.multiple=true;f.value='';f.click()},
   fimgCover:d=>{const i=+d.i;const id=S.formImgs.splice(i,1)[0];S.formImgs.unshift(id);renderFormImgs()},
   fimgDel:d=>{S.formImgs.splice(+d.i,1);renderFormImgs()},
-  accForm:d=>openModal(accFormHTML(d.id?S.acc.find(x=>x.id===d.id):null)),
+  accForm:d=>{const a=d.id?S.acc.find(x=>x.id===d.id):null;S.formImgs=unitImgs(a).slice();S.formOrig=S.formImgs.slice();openModal(accFormHTML(a));renderFormImgs()},
   svcForm:d=>openModal(svcFormHTML(d.id?S.svc.find(x=>x.id===d.id):null)),
   repForm:d=>openModal(repFormHTML(d.id?S.repairs.find(x=>x.id===d.id):null)),
   accQty:async d=>{const a=S.acc.find(x=>x.id===d.id);if(!a)return;await W(()=>col('accessories').doc(a.id).update({qty:Math.max(0,(+a.qty||0)+(+d.d))}))},
@@ -1135,7 +1136,7 @@ const FORM={
       const dupKho=imeis.find(s=>S.inv.some(x=>x.imei===s));if(dupKho)return toast('IMEI '+dupKho+' đã có trong kho');
       const ok=await W(async()=>{for(let i=0;i<n;i+=5)await Promise.all(Array.from({length:Math.min(5,n-i)},(_,j)=>putDoc('inventory',col('inventory').doc(),{...d,imei:imeis[i+j]||''},'set')))},n>1?`Đã nhập ${n} máy vào kho`:'Đã nhập kho');
       if(ok){closeModal();if(n>imeis.length&&n>1)setTimeout(()=>toast(`${n-imeis.length} máy chưa có IMEI, nhớ bổ sung ở nút Sửa`),2700)}}},
-  acc:async v=>{const d={name:v.name.trim(),category:v.category,qty:num(v.qty),price:num(v.price)};if(v.cost!=null)d.cost=num(v.cost);
+  acc:async v=>{const d={name:v.name.trim(),category:v.category,qty:num(v.qty),price:num(v.price)};if(v.cost!=null)d.cost=num(v.cost);if(ASSETS&&Array.isArray(S.formImgs)){d.imgs=S.formImgs.slice();d.img=''}
     if(await W(()=>v.id?putDoc('accessories',col('accessories').doc(v.id),d,'update'):putDoc('accessories',col('accessories').doc(),{cost:0,...d},'set'),'Đã lưu'))closeModal()},
   svc:async v=>{const d={model:v.model.trim(),category:v.category,name:v.name.trim(),price:num(v.price),time:v.time.trim()};
     if(await W(()=>v.id?col('services').doc(v.id).update(d):col('services').doc().set(d),'Đã lưu'))closeModal()},
