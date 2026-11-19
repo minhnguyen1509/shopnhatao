@@ -580,6 +580,7 @@ function ordTable(list,compact){
 function ordActs(o){
   const b=[];
   if(o.status!=='cancelled')b.push(`<button class="btn sm ghost" data-act="ordEdit" data-id="${esc(o.id)}">Sửa đơn</button>`);
+  if(isOwner())b.push(`<button class="btn sm ghost" style="color:var(--red)" data-act="ordDel" data-id="${esc(o.id)}">Xóa đơn</button>`);
   if(o.status==='pending')b.push(`<button class="btn sm btn-ink" data-act="ordSet" data-id="${esc(o.id)}" data-v="confirmed">Đã gọi xác nhận</button>`);
   if(o.status==='pending'||o.status==='confirmed')b.push(`<button class="btn sm btn-green" data-act="ordSet" data-id="${esc(o.id)}" data-v="done">Giao xong</button>`,`<button class="btn sm ghost" data-act="ordSet" data-id="${esc(o.id)}" data-v="cancelled">Hủy</button>`);
   if(o.status==='done')b.push(`<button class="btn sm ghost" data-act="receipt" data-id="${esc(o.id)}">Hóa đơn</button>`,`<button class="btn sm ghost" data-act="ordReturn" data-id="${esc(o.id)}">Trả hàng</button>`);
@@ -1046,6 +1047,18 @@ const ACT={
     <div class="fgrid" style="margin-top:12px"><div><label>Số tiền hoàn cho khách</label><input name="refund" inputmode="numeric" placeholder="Để trống = đúng giá các món trả"></div><div><label>Lý do</label><input name="reason" placeholder="VD: lỗi màn, khách đổi ý…"></div></div>
     <p class="muted" style="font-size:12.5px;margin:10px 0 0">Doanh thu sẽ trừ số tiền hoàn vào ngày trả. Máy về kho giữ giá bán cũ, sửa lại trong Kho máy nếu cần.</p>
     <div class="foot"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">Xác nhận trả hàng</button></div></form>`)},
+  ordDel:d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;const sold=SOLD(o),held=o.status==='pending'||o.status==='confirmed';
+    const back=(o.items||[]).filter(it=>it.kind!=='svc'&&(sold?remQ(it)>0:held&&it.kind==='phone'));
+    openModal(`<h2>Xóa đơn ${esc(o.code)}?</h2><p class="muted" style="margin-top:0">${esc(o.customerName||'Khách lẻ')}${o.phone?' · '+esc(o.phone):''} · ${money(o.total)} · ${ORD_ST[o.status]?ORD_ST[o.status][0]:''}</p>
+    <p>Đơn sẽ bị <b>xóa hẳn</b>, không khôi phục được. Doanh thu, lịch sử khách và tra cứu bảo hành của đơn này cũng mất theo.</p>
+    ${back.length?`<label style="display:flex;gap:10px;align-items:flex-start;font-weight:500;margin-top:10px"><input type="checkbox" id="del-back" checked style="width:auto;margin-top:3px"><span>Đưa hàng về lại kho<small class="muted" style="display:block;font-size:12.5px">${back.map(it=>esc(it.name)+((sold?remQ(it):1)>1?' ×'+remQ(it):'')).join(', ')}</small></span></label>`:''}
+    <p class="muted" style="font-size:12.5px">Nếu khách chỉ trả hàng hoặc không mua nữa, nên dùng "Trả hàng" hoặc "Hủy" để giữ lại lịch sử.</p>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close">Không xóa</button><button class="btn btn-red" data-act="ordDelGo" data-id="${esc(o.id)}">Xóa đơn</button></div>`)},
+  ordDelGo:async d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;const back=!!($('#del-back')&&$('#del-back').checked);const sold=SOLD(o);
+    const ok=await W(async()=>{if(back)for(const it of (o.items||[])){if(it.kind==='svc')continue;
+        if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u&&u.orderCode===o.code&&(u.status==='reserved'||(sold&&u.status==='sold'&&remQ(it)>0)))await safeUpd('inventory',u.id,{status:'instock',orderCode:'',soldAt:null})}
+        else if(sold){const q=remQ(it);const a=S.acc.find(x=>x.id===it.refId);if(a&&q>0)await safeUpd('accessories',a.id,{qty:(+a.qty||0)+q})}}
+      await col('orders').doc(o.id).delete()},'Đã xóa đơn '+o.code);if(ok)closeModal()},
   ordCancel:async d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;closeModal();
     await W(async()=>{await col('orders').doc(o.id).update({status:'cancelled',staff:S.staff});for(const it of (o.items||[])){if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u&&u.status==='reserved'&&u.orderCode===o.code)await safeUpd('inventory',u.id,{status:'instock',orderCode:''})}}},'Đã hủy đơn')},
   receipt:d=>{let o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;if(!o.id&&o.code)o={...o,id:o.code};S.rcptO=o;
