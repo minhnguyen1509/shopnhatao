@@ -183,7 +183,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .cart-line{display:grid;grid-template-columns:1fr 104px 34px 34px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #F1EBE2}
 .cart-line input{padding:6px 8px;text-align:right}.cart-line .btn.sm{padding:6px 0;width:34px;justify-content:center}
 .total{display:flex;justify-content:space-between;font-size:20px;font-weight:800;padding:12px 0}
-.bars{display:flex;align-items:flex-end;gap:18px;height:220px;padding:10px 4px 0;border-bottom:1px solid var(--line)}
+.bars{display:flex;align-items:flex-end;gap:8px;height:220px;padding:10px 4px 0;border-bottom:1px solid var(--line)}
 .bars .m{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
 .bars .pair{display:flex;gap:4px;align-items:flex-end;height:100%;width:100%;justify-content:center}
 .bars .b{width:40%;max-width:34px;border-radius:5px 5px 0 0;min-height:2px}
@@ -849,8 +849,8 @@ function aCus(){
 }
 
 function aRpt(){
-  const by=finance();const ms=[];const d=new Date();d.setDate(1);for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);ms.push(mKey(x.getTime()))}
-  const rows=ms.map(k=>({k,...(by[k]||{rev:0,cost:0,phone:0,acc:0,rep:0,repCost:0})}));const max=Math.max(1,...rows.map(r=>r.rev));
+  const by=finance();const ms=[];const d=new Date();d.setDate(1);for(let i=11;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);ms.push(mKey(x.getTime()))}
+  const Z={rev:0,cost:0,comm:0,phone:0,acc:0,rep:0,repCost:0};const rows=ms.map(k=>({k,...Z,...(by[k]||{})}));const allRows=[...new Set([...ms,...Object.keys(by)])].sort().map(k=>({k,...Z,...(by[k]||{})}));const max=Math.max(1,...rows.map(r=>r.rev));
   const cur=rows[rows.length-1];
   const top={};S.orders.filter(o=>SOLD(o)&&mKey(o.doneAt||o.createdAt)===cur.k).forEach(o=>(o.items||[]).forEach(i=>{if(i.kind==='phone'&&remQ(i)>0){const m=i.name.split(' ').slice(0,-2).join(' ')||i.name;top[m]=(top[m]||0)+1}}));
   const topL=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -863,13 +863,13 @@ function aRpt(){
    <div class="kpi"><small>Sửa chữa</small><b>${money(cur.rep)}</b><span>Chi phí ${money(cur.repCost)}</span></div>
    <div class="kpi"><small>Vốn tồn kho</small><b>${money(inst.reduce((s,x)=>s+(+x.costPrice||0),0))}</b><span>${inst.length} máy</span></div>
   </div>
-  <div class="cols2"><div class="panel"><h3>6 tháng gần nhất</h3>
+  <div class="cols2"><div class="panel"><h3>12 tháng gần nhất</h3>
     <div class="bars">${rows.map(r=>`<div class="m"><div class="pair"><div class="b" style="height:${r.rev/max*100}%;background:var(--ink)" title="Doanh thu ${money(r.rev)}"></div><div class="b" style="height:${Math.max(0,r.rev-r.cost-r.comm)/max*100}%;background:var(--red)" title="Lãi shop ${money(r.rev-r.cost-r.comm)}"></div></div></div>`).join('')}</div>
     <div style="display:flex;gap:18px;padding:0 4px">${rows.map(r=>`<div class="lbl" style="flex:1;text-align:center;font-size:12px;color:var(--muted);padding-top:6px">T${+r.k.slice(5)}</div>`).join('')}</div>
     <div class="legend"><span><i style="background:var(--ink)"></i>Doanh thu</span><span><i style="background:var(--red)"></i>Lãi shop</span></div>
   </div>
   <div class="panel"><h3>Máy bán chạy tháng này</h3>${topL.length?`<table><tbody>${topL.map(([m,n])=>`<tr><td>${esc(m)}</td><td class="num"><b>${n}</b> máy</td></tr>`).join('')}</tbody></table>`:'<p class="muted">Chưa có dữ liệu.</p>'}</div></div>
-  <div class="tbl-wrap" style="margin-top:16px"><table><thead><tr><th>Tháng</th><th class="num">Bán máy</th><th class="num">Phụ kiện</th><th class="num">Sửa chữa</th><th class="num">Doanh thu</th><th class="num">Giá vốn & chi phí</th><th class="num">Hoa hồng NV</th><th class="num">Lãi shop</th></tr></thead><tbody>${rows.slice().reverse().map(r=>`<tr><td>${r.k.slice(5)}/${r.k.slice(0,4)}</td><td class="num">${money(r.phone)}</td><td class="num">${money(r.acc)}</td><td class="num">${money(r.rep)}</td><td class="num"><b>${money(r.rev)}</b></td><td class="num">${money(r.cost)}</td><td class="num">${money(r.comm)}</td><td class="num"><b>${money(r.rev-r.cost-r.comm)}</b></td></tr>`).join('')}</tbody></table></div>`+
+  <div class="tbl-wrap" style="margin-top:16px"><table><thead><tr><th>Tháng</th><th class="num">Bán máy</th><th class="num">Phụ kiện</th><th class="num">Sửa chữa</th><th class="num">Doanh thu</th><th class="num">Giá vốn & chi phí</th><th class="num">Hoa hồng NV</th><th class="num">Lãi shop</th></tr></thead><tbody>${allRows.slice().reverse().map(r=>`<tr><td>${r.k.slice(5)}/${r.k.slice(0,4)}</td><td class="num">${money(r.phone)}</td><td class="num">${money(r.acc)}</td><td class="num">${money(r.rep)}</td><td class="num"><b>${money(r.rev)}</b></td><td class="num">${money(r.cost)}</td><td class="num">${money(r.comm)}</td><td class="num"><b>${money(r.rev-r.cost-r.comm)}</b></td></tr>`).join('')}</tbody></table></div>`+
   (()=>{const m={};S.orders.filter(o=>SOLD(o)&&mKey(o.doneAt||o.createdAt)===cur.k).forEach(o=>ordX(o).filter(isStaffX).forEach(x=>{const c=+x.amount||0;if(!c)return;const n=x.staff||o.staff||'(không rõ)';m[n]=m[n]||{n:0,sum:0};m[n].n++;m[n].sum+=c}));const L=Object.entries(m).sort((a,b)=>b[1].sum-a[1].sum);
     return `<div class="panel" style="margin-top:16px"><b>Hoa hồng nhân viên tháng ${cur.k.slice(5)}/${cur.k.slice(0,4)}</b><div class="muted" style="font-size:12.5px;margin:2px 0 8px">Lấy từ dòng nhân viên trong Chi phí của từng đơn, theo nhân viên được chọn ở dòng đó.</div>${L.length?`<table><thead><tr><th>Nhân viên</th><th class="num">Số đơn có HH</th><th class="num">Tổng hoa hồng</th></tr></thead><tbody>${L.map(([k,v])=>`<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num"><b>${money(v.sum)}</b></td></tr>`).join('')}</tbody></table>`:'<div class="muted" style="font-size:13px">Tháng này chưa có đơn nào ghi hoa hồng.</div>'}</div>`})();
 }
@@ -890,7 +890,7 @@ function parseDate(v){if(typeof v==='number'&&v>20000&&v<80000)return Math.round
 function mapRow(r,target,map){const g=f=>map[f]!=null?r[map[f]]:'';
   if(target==='ord'){const name=String(g('pname')).trim(),imei=String(g('imei')).trim().toUpperCase(),qty=Math.max(1,+String(g('oqty')).replace(/[^\d]/g,'')||1);const pc=String(g('pcond')).trim();
     const kind=imei||CATS.some(c=>name.toLowerCase().includes(c.toLowerCase()))||/iphone|ipad|macbook|watch|airpods/i.test(name)?'phone':'acc';
-    return {code:String(g('ocode')).trim(),date:map.odate!=null?parseDate(g('odate')):0,name:String(g('cname')).trim(),phone:normPhone(g('cphone')),address:String(g('caddr')).trim(),pname:name,imei,kind,cond:pc?({new:'New Seal',likenew:'Likenew',used:'Đã qua sử dụng'})[parseCond(pc)]:'',warrantyMonths:+String(g('warrantyMonths')).replace(/[^\d]/g,'')||0,qty,price:parseMoney(g('price')),cost:parseMoney(g('costPrice')),staff:String(g('ostaff')).trim(),pay:String(g('opay')).trim(),note:String(g('note')).trim(),hh:map.ohh!=null?parseMoney(g('ohh')):0,helper:String(g('ohelper')).trim(),lai:map.olai!=null&&String(g('olai')).trim()!==''?parseMoney(g('olai')):null}}
+    return {code:String(g('ocode')).trim(),date:map.odate!=null?swapDM(parseDate(g('odate'))):0,name:String(g('cname')).trim(),phone:normPhone(g('cphone')),address:String(g('caddr')).trim(),pname:name,imei,kind,cond:pc?({new:'New Seal',likenew:'Likenew',used:'Đã qua sử dụng'})[parseCond(pc)]:'',warrantyMonths:+String(g('warrantyMonths')).replace(/[^\d]/g,'')||0,qty,price:parseMoney(g('price')),cost:parseMoney(g('costPrice')),staff:String(g('ostaff')).trim(),pay:String(g('opay')).trim(),note:String(g('note')).trim(),hh:map.ohh!=null?parseMoney(g('ohh')):0,helper:String(g('ohelper')).trim(),lai:map.olai!=null&&String(g('olai')).trim()!==''?parseMoney(g('olai')):null}}
   if(target==='inv'){const mdl=String(g('model')).trim();return {cat:CATS.find(c=>String(g('cat')).toLowerCase().includes(c.toLowerCase()))||inferCat(String(g('cat'))+' '+mdl),model:mdl,source:String(g('source')).trim(),origin:String(g('origin')).trim(),net:(()=>{const s=String(g('net')).toLowerCase();if(/lock/.test(s))return 'lock';if(/ngoài mỹ|ngoai my/.test(s))return 'qt';if(/mỹ|my|full|ll\/a/.test(s))return 'qtmy';if(/quốc tế|quoc te|qt/.test(s))return 'qt';if(/vn|chính hãng|chinh hang/.test(s))return 'vn';return guessNet(g('origin'))})(),storage:parseStorage(g('storage')),color:String(g('color')).trim(),condition:parseCond(g('condition')),battery:+String(g('battery')).replace(/[^\d]/g,'')||null,imei:String(g('imei')).replace(/\s/g,''),costPrice:parseMoney(g('costPrice')),price:parseMoney(g('price')),warrantyMonths:+String(g('warrantyMonths')).replace(/[^\d]/g,'')||(parseCond(g('condition'))==='new'?12:6),status:map.status!=null?parseStatus(g('status')):'instock',note:String(g('note')).trim(),createdAt:map.createdAt!=null?parseDate(g('createdAt')):now(),orderCode:''}}
   return {name:String(g('model')).trim(),category:ACC_CATS.find(c=>String(g('category')).toLowerCase().includes(c.toLowerCase()))||'Khác',cost:parseMoney(g('costPrice')),price:parseMoney(g('price')),qty:+String(g('qty')).replace(/[^\d]/g,'')||0}}
 function aImp(){
@@ -904,6 +904,7 @@ function aImp(){
     const F=IMP_FIELDS[I.target];
     h+=`<div class="panel" style="margin-top:14px"><h3>Ghép cột (${I.rows.length} dòng trong “${esc(I.fileName)}”)</h3><p class="muted" style="margin-top:0">Mình đã tự đoán, bạn kiểm tra lại cho đúng.</p><div class="fgrid">${F.map(([f,l])=>`<div><label>${l}</label><select data-chg="impMap" data-f="${f}"><option value="">— bỏ qua —</option>${I.headers.map((x,i)=>`<option value="${i}" ${I.map[f]===i?'selected':''}>${esc(x||'Cột '+(i+1))}</option>`).join('')}</select></div>`).join('')}</div></div>`;
     const prev=I.rows.slice(0,5).map(r=>mapRow(r,I.target,I.map));
+    if(I.target==='ord')h+=`<label style="display:flex;gap:8px;align-items:center;margin-top:14px;font-weight:500"><input type="checkbox" data-chg="impSwap" ${I.swapDM?'checked':''} style="width:auto"> Đảo ngày ↔ tháng <span class="muted" style="font-size:12.5px;font-weight:400">(tích nếu cột Ngày bán bên dưới bị hiểu nhầm, ví dụ 02/11 thành 11/02)</span></label>`;
     h+=`<h3 style="margin:18px 0 8px">Xem trước 5 dòng đầu</h3><div class="tbl-wrap"><table><thead><tr>${I.target==='ord'?'<th>Mã đơn</th><th>Ngày bán</th><th>Khách</th><th>Sản phẩm</th><th>BH</th><th class="num">Giá bán</th>':I.target==='inv'?'<th>Máy</th><th>Tình trạng</th><th>IMEI</th><th class="num">Nhập</th><th class="num">Bán</th><th>Trạng thái</th><th>Ngày nhập</th>':'<th>Tên</th><th>Loại</th><th class="num">Nhập</th><th class="num">Bán</th><th class="num">Tồn</th>'}</tr></thead><tbody>${prev.map(p=>I.target==='ord'?`<tr><td>${esc(p.code||'(tự tạo)')}</td><td>${p.date?fmtD(p.date):'<span style="color:var(--red)">thiếu</span>'}</td><td>${esc(p.name||'Khách lẻ')}<span class="s">${esc(p.phone)}</span></td><td>${esc(p.pname)}${p.qty>1?' ×'+p.qty:''}<span class="s">${p.kind==='phone'?'Máy':'Phụ kiện'}${p.imei?' · '+esc(p.imei):''}${p.cond?' · '+esc(p.cond):''}</span></td><td>${p.warrantyMonths?p.warrantyMonths+' th':''}</td><td class="num">${money(p.price)}</td></tr>`:I.target==='inv'?`<tr><td>${esc(p.model)} ${esc(p.storage)}<span class="s">${esc(p.color)}</span></td><td>${COND[p.condition]}${p.battery?' · '+p.battery+'%':''}</td><td>${esc(p.imei)}</td><td class="num">${money(p.costPrice)}</td><td class="num">${money(p.price)}</td><td>${INV_ST[p.status][0]}</td><td>${fmtD(p.createdAt)}</td></tr>`:`<tr><td>${esc(p.name)}</td><td>${esc(p.category)}</td><td class="num">${money(p.cost)}</td><td class="num">${money(p.price)}</td><td class="num">${p.qty}</td></tr>`).join('')}</tbody></table></div>
     <div class="row" style="margin-top:14px"><button class="btn btn-red" data-act="impRun" ${I.busy||!W_OK()?'disabled':''}>${I.busy?`Đang nhập ${I.done}/${I.total}…`:`Nhập ${I.rows.length} dòng`}</button>${I.result?`<span class="muted">${esc(I.result)}</span>`:''}</div>`;
   }
@@ -1217,6 +1218,7 @@ const ACT={
     const ok=await W(async()=>{for(let i=0;i<recs.length;i+=5){await Promise.all(recs.slice(i,i+5).map(p=>{const doc=I.target==='inv'?p:{name:p.name,category:p.category,cost:p.cost,price:p.price,qty:p.qty};return putDoc(coll,col(coll).doc(),{...doc,importedAt:now()},'set')}));I.done=Math.min(recs.length,i+5);schedule()}});
     I.busy=false;I.result=ok?`Đã nhập ${recs.length} dòng${skipped?`, bỏ qua ${skipped} dòng thiếu tên hoặc giá`:''}.`:'Nhập bị dừng giữa chừng, kiểm tra lại rồi thử lại.';render()},
 };
+function swapDM(t){if(!t||!(S.imp&&S.imp.swapDM))return t;const d=new Date(t+7*3600e3);const D=d.getUTCDate(),M=d.getUTCMonth()+1;if(D>12)return t;return Date.UTC(d.getUTCFullYear(),D-1,M,d.getUTCHours(),d.getUTCMinutes())-7*3600e3}
 function hashStr(s){let x=5381;for(let i=0;i<s.length;i++)x=((x<<5)+x+s.charCodeAt(i))>>>0;return x.toString(36).toUpperCase()}
 async function impOrders(){const I=S.imp;const rows=I.rows.map(r=>mapRow(r,'ord',I.map));const ok=rows.filter(p=>p.pname&&p.price&&p.date);const skipped=rows.length-ok.length;
   const groups=new Map();ok.forEach(p=>{const k=p.code||('LS-'+hashStr([p.date,p.phone,p.name,p.pname,p.imei,p.price].join('|')));if(!groups.has(k))groups.set(k,[]);groups.get(k).push(p)});
@@ -1339,6 +1341,7 @@ const CHG={
   posPromo:el=>{S.posCust.promo=el.value;render()},
   posDisc:el=>{S.posCust.disc=el.value;render()},
   cartPrice:el=>{const c=S.cart[+el.dataset.i];if(c){c.price=num(el.value);render()}},
+  impSwap:el=>{if(S.imp){S.imp.swapDM=el.checked;render()}},
   impTarget:el=>{if(S.imp){S.imp.target=el.value;if(S.imp.headers)S.imp.map=guessMap(S.imp.headers,el.value)}else S.imp={target:el.value};render()},
   impSheet:el=>{loadSheet(el.value);render()},
   impMap:el=>{S.imp.map[el.dataset.f]=el.value===''?undefined:+el.value;render()},
