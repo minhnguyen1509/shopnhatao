@@ -213,3 +213,93 @@ exports.warrantyLookup = onCall(async (req) => {
   }
   return { items: items.slice(0, 10), repairs: repairs.slice(0, 10) };
 });
+
+/* ---------- gửi phiếu bảo hành qua email (Gmail SMTP) ---------- */
+const nodemailer = require('nodemailer');
+const MAIL_FROM = 'hm.istore25@gmail.com';
+const LOGO_URL = 'https://shopnhatao-b8f59.web.app/logo-mark.webp';
+async function requireStaff(req) {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Bạn cần đăng nhập.');
+  const me = await db.doc('staff/' + req.auth.uid).get();
+  const d = me.exists ? me.data() : null;
+  if (!d || d.status === 'off') throw new HttpsError('permission-denied', 'Tài khoản không có quyền.');
+  return d;
+}
+const h = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const vnd = (n) => (Math.round(+n || 0)).toLocaleString('vi-VN').replace(/,/g, '.');
+const mdLine = (s) => h(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+function policyHtml(t) {
+  const out = []; let ul = false;
+  String(t || '').split('\n').forEach((l) => {
+    const x = l.trim(); if (!x) return;
+    if (x.startsWith('- ')) { if (!ul) { out.push('<ul style="margin:4px 0 8px;padding-left:20px">'); ul = true; } out.push('<li style="margin:2px 0">' + mdLine(x.slice(2)) + '</li>'); return; }
+    if (ul) { out.push('</ul>'); ul = false; }
+    if (x.startsWith('## ')) out.push('<h2 style="font-size:18px;text-align:center;margin:0 0 10px">' + mdLine(x.slice(3)) + '</h2>');
+    else if (x.startsWith('### ')) out.push('<p style="margin:10px 0 2px"><b>' + mdLine(x.slice(4)) + '</b></p>');
+    else out.push('<p style="margin:6px 0">' + mdLine(x) + '</p>');
+  });
+  if (ul) out.push('</ul>');
+  return out.join('');
+}
+function invoiceEmail(o, shop, conds, withPolicy) {
+  const td = 'border:1px solid #333;padding:6px 8px;';
+  const rows = (o.items || []).map((it, i) => `<tr><td style="${td}text-align:center">${i + 1}</td><td style="${td}">${h(it.name)}${(+it.qty || 1) > 1 ? ' (x' + (+it.qty) + ')' : ''}</td><td style="${td}text-align:center;font-size:12px">${h(it.imei || '')}</td><td style="${td}text-align:center">${h(conds[i] || it.cond || '')}</td><td style="${td}text-align:center">${it.warrantyMonths ? h(it.warrantyMonths) + ' tháng' : ''}</td><td style="${td}text-align:right">${vnd(it.price)}</td><td style="${td}text-align:right">${vnd((+it.price || 0) * (+it.qty || 1))}</td></tr>`).join('');
+  const d = new Date((o.doneAt || o.createdAt || Date.now()) + 7 * 3600e3);
+  const th = td + 'background:#f3f3f3;text-align:center;';
+  const cus = o.customerName && o.customerName !== 'Khách lẻ' ? o.customerName : '';
+  return `<div style="font-family:'Times New Roman',Times,serif;color:#111;font-size:14px;max-width:720px;margin:0 auto;line-height:1.45">
+<table role="presentation" style="width:100%;border-collapse:collapse"><tr><td style="width:96px;vertical-align:top"><img src="${LOGO_URL}" alt="${h(shop.name)}" width="84" style="display:block;border-radius:8px"></td>
+<td style="text-align:center;vertical-align:top"><div style="font-size:18px;font-weight:bold">${h(String(shop.name || '').toUpperCase())}</div><div style="font-weight:bold">${h(shop.company)}</div><div>${h(shop.address)}</div><div>Mobile: ${h(shop.phones)}</div>${shop.email ? `<div>Email: ${h(shop.email)}</div>` : ''}</td></tr></table>
+<h1 style="text-align:center;font-size:22px;margin:22px 0 2px">${h(shop.title || 'PHIẾU BẢO HÀNH')}</h1><div style="text-align:center;font-size:12px;margin-bottom:16px">Số: ${h(o.code)}</div>
+<div>Tên khách hàng: ${h(cus)}</div><div>Địa chỉ: ${h(o.customerAddress || '')}</div><div style="margin-bottom:12px">Điện thoại: ${h(o.phone || '')}</div>
+<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="${th}">STT</th><th style="${th}">Sản phẩm</th><th style="${th}">Serial</th><th style="${th}">Tình trạng</th><th style="${th}">Bảo hành</th><th style="${th}">Đơn giá</th><th style="${th}">Thành tiền</th></tr></thead>
+<tbody>${rows}</tbody><tfoot><tr><td colspan="6" style="${td}text-align:right;font-weight:bold">Tổng cộng:</td><td style="${td}text-align:right;font-weight:bold">${vnd(o.total)}</td></tr></tfoot></table>
+<table role="presentation" style="width:100%;margin-top:18px"><tr><td></td><td style="width:45%;text-align:center"><div>Ngày ${d.getUTCDate()} tháng ${d.getUTCMonth() + 1} năm ${d.getUTCFullYear()}</div><b>Người bán hàng</b><div style="margin-top:28px">${h(String(o.staff || '').toUpperCase())}</div></td></tr></table>
+${withPolicy && shop.policy ? `<hr style="border:0;border-top:1px solid #ccc;margin:26px 0 18px">${policyHtml(shop.policy)}` : ''}
+<p style="margin-top:22px;font-size:12px;color:#666">Email này được gửi tự động từ ${h(shop.name)} khi bạn mua hàng. Cần hỗ trợ, bạn trả lời email này hoặc gọi ${h(shop.phones)}.</p></div>`;
+}
+
+exports.setMailPassword = onCall(async (req) => {
+  await requireOwner(req);
+  const pass = String((req.data || {}).pass || '').replace(/\s/g, '');
+  if (pass.length !== 16) throw new HttpsError('invalid-argument', 'Mật khẩu ứng dụng Gmail gồm 16 ký tự.');
+  const t = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: MAIL_FROM, pass } });
+  try { await t.verify(); } catch (e) {
+    throw new HttpsError('failed-precondition', 'Gmail không chấp nhận mật khẩu này. Kiểm tra đã bật xác minh 2 bước và tạo đúng Mật khẩu ứng dụng cho ' + MAIL_FROM + '.');
+  }
+  await db.doc('private/mail').set({ user: MAIL_FROM, pass, updatedAt: now() });
+  await db.doc('settings/shop').set({ mailReady: true }, { merge: true });
+  return { ok: true };
+});
+
+exports.sendInvoiceEmail = onCall(async (req) => {
+  const me = await requireStaff(req);
+  const data = req.data || {};
+  const to = str(data.to, 120).toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new HttpsError('invalid-argument', 'Email khách chưa đúng.');
+  const os = await db.doc('orders/' + str(data.orderId, 80)).get();
+  if (!os.exists) throw new HttpsError('not-found', 'Không tìm thấy đơn hàng.');
+  const o = os.data();
+  const cred = await db.doc('private/mail').get();
+  if (!cred.exists) throw new HttpsError('failed-precondition', 'Chủ shop chưa nhập Mật khẩu ứng dụng Gmail trong Cài đặt.');
+  const st = await settings();
+  const s = data.shop || {};
+  const shop = {
+    name: str(s.name || st.name || 'Shop Nhà Táo', 80), company: str(s.company, 120), address: str(s.address || st.address, 200),
+    phones: str(s.phones || st.phone, 80), email: str(s.email || MAIL_FROM, 80), title: str(s.title || 'PHIẾU BẢO HÀNH', 60), policy: str(s.policy, 8000),
+  };
+  const conds = Array.isArray(data.conds) ? data.conds.map((x) => str(x, 40)) : [];
+  const t = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 465, secure: true, auth: { user: cred.data().user, pass: cred.data().pass } });
+  try {
+    await t.sendMail({
+      from: `"${shop.name}" <${cred.data().user}>`, to, replyTo: cred.data().user,
+      subject: `${shop.title} ${o.code || ''} - ${shop.name}`.trim(),
+      html: invoiceEmail(o, shop, conds, !!data.policy),
+    });
+  } catch (e) {
+    console.error('sendMail', e);
+    throw new HttpsError('internal', 'Gửi email không thành công: ' + (e.responseCode === 535 ? 'Gmail từ chối mật khẩu ứng dụng, chủ shop nhập lại trong Cài đặt.' : (e.message || 'lỗi không rõ')));
+  }
+  await os.ref.update({ customerEmail: to, mailedAt: now(), mailedBy: me.name || '' });
+  return { ok: true };
+});
