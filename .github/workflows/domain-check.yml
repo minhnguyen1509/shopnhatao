@@ -22,3 +22,4 @@ jobs:
             curl -sS -H "Authorization: Bearer $T" -H "x-goog-user-project: $P" "https://firebasehosting.googleapis.com/v1beta1/projects/$P/sites/$P/customDomains/$d" | jq -c '{hostState,ownershipState,cert:.cert.state,issues}'
           done
           echo "== HTTPS"; for u in https://shopnhatao.com/ https://shopnhatao.com/quan-tri; do curl -sSI "$u" | grep -i "^cache-control\|^HTTP"; echo "banner-code: $(curl -s "$u" | grep -c bannerList)"; done
+          echo "== exportBackup (không mã, phải 403)"; curl -s -o /dev/null -w "%{http_code}\n" "https://asia-southeast1-shopnhatao-b8f59.cloudfunctions.net/exportBackup"

@@ -361,3 +361,33 @@ exports.sendInvoiceEmail = onCall(async (req) => {
   await os.ref.update({ customerEmail: to, mailedAt: now(), mailedBy: me.name || '' });
   return { ok: true };
 });
+
+/* ---------- sao lưu sang Google Drive bằng Apps Script của chủ shop ---------- */
+const { onRequest } = require('firebase-functions/v2/https');
+const cryptoMod = require('crypto');
+exports.backupToken = onCall(async (req) => {
+  await requireOwner(req);
+  const ref = db.doc('private/backup');
+  const cur = await ref.get();
+  if (cur.exists && cur.data().token && !(req.data || {}).regen) return { token: cur.data().token };
+  const token = cryptoMod.randomBytes(24).toString('hex');
+  await ref.set({ token, updatedAt: now() });
+  return { token };
+});
+exports.exportBackup = onRequest({ cors: false, timeoutSeconds: 120, memory: '512MiB' }, async (req, res) => {
+  try {
+    const t = String(req.query.token || req.get('x-backup-token') || '');
+    const cur = await db.doc('private/backup').get();
+    const ok = cur.exists && cur.data().token && t.length === cur.data().token.length &&
+      cryptoMod.timingSafeEqual(Buffer.from(t), Buffer.from(cur.data().token));
+    if (!ok) { res.status(403).json({ error: 'Sai mã sao lưu' }); return; }
+    const names = ['inventory', 'accessories', 'orders', 'repairs', 'services', 'staff', 'shifts', 'payroll', 'costs', 'settings'];
+    const out = { generatedAt: now(), collections: {} };
+    for (const n of names) {
+      const s = await db.collection(n).get();
+      out.collections[n] = s.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+    await db.doc('private/backup').set({ lastExportAt: now() }, { merge: true });
+    res.set('Cache-Control', 'no-store').json(out);
+  } catch (e) { console.error(e); res.status(500).json({ error: 'Lỗi máy chủ' }); }
+});
