@@ -10,8 +10,8 @@ const db = getFirestore();
   let set = 0, had = 0, none = [];
   const batch = db.batch();
   snap.forEach((d) => {
-    const a = d.data(); const name = String(a.name || '').trim();
-    const m = map.find((x) => name.startsWith(x.prefix));
+    const a = d.data(); const name = String(a.name || '').trim(); const n = name.toLowerCase().normalize('NFC').replace(/\s+/g, ' ');
+    const m = map.find((x) => x.all.every((k) => n.includes(k.normalize('NFC'))));
     if (!m) { none.push(name); return; }
     if ((Array.isArray(a.imgs) && a.imgs.length) || a.img) { had++; return; }
     batch.update(d.ref, { imgs: [m.img], img: '' }); set++;

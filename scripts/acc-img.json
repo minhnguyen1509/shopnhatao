@@ -1,58 +1,17 @@
 [
- {
-  "prefix": "Sạc Dây sạc C-L Mikha",
-  "img": "/img/acc/cap-cl-mikha.webp"
- },
- {
-  "prefix": "Mắt camera",
-  "img": "/img/acc/mat-camera.webp"
- },
- {
-  "prefix": "Sạc Dây sạc C-C Zin bóc",
-  "img": "/img/acc/day-cc-zin.webp"
- },
- {
-  "prefix": "Sạc Củ 20w Mikha",
-  "img": "/img/acc/cu-20w-mikha.webp"
- },
- {
-  "prefix": "PPF cầu vồng",
-  "img": "/img/acc/ppf.webp"
- },
- {
-  "prefix": "Sạc Củ 20w Zin bóc",
-  "img": "/img/acc/cu-20w-zin.webp"
- },
- {
-  "prefix": "Sạc Cáp 4 trong 1 vàng",
-  "img": "/img/acc/cap-4in1.webp"
- },
- {
-  "prefix": "Kính cường lực Cường lực trong tự dán",
-  "img": "/img/acc/cuong-luc-tu-dan.webp"
- },
- {
-  "prefix": "Sạc Dây sạc C-C Mikha",
-  "img": "/img/acc/cap-cc-mikha.webp"
- },
- {
-  "prefix": "Kính cường lực Infinity Edge",
-  "img": "/img/acc/infinity-edge.webp"
- },
- {
-  "prefix": "Kính cường lực Kingkong 4D CNT",
-  "img": "/img/acc/kingkong-4d.webp"
- },
- {
-  "prefix": "Kính cường lực Kingkong 3D",
-  "img": "/img/acc/kingkong-3d.webp"
- },
- {
-  "prefix": "Ốp Ốp trong",
-  "img": "/img/acc/op-trong.webp"
- },
- {
-  "prefix": "Ốp Ốp Magsafe",
-  "img": "/img/acc/op-magsafe.webp"
- }
+ {"all":["c-l","mikha"],"img":"/img/acc/cap-cl-mikha.webp"},
+ {"all":["lightning","mikha"],"img":"/img/acc/cap-cl-mikha.webp"},
+ {"all":["c-c","zin"],"img":"/img/acc/day-cc-zin.webp"},
+ {"all":["c-c","mikha"],"img":"/img/acc/cap-cc-mikha.webp"},
+ {"all":["củ","mikha"],"img":"/img/acc/cu-20w-mikha.webp"},
+ {"all":["củ","zin"],"img":"/img/acc/cu-20w-zin.webp"},
+ {"all":["4 trong 1"],"img":"/img/acc/cap-4in1.webp"},
+ {"all":["tự dán"],"img":"/img/acc/cuong-luc-tu-dan.webp"},
+ {"all":["infinity"],"img":"/img/acc/infinity-edge.webp"},
+ {"all":["kingkong","4d"],"img":"/img/acc/kingkong-4d.webp"},
+ {"all":["kingkong","3d"],"img":"/img/acc/kingkong-3d.webp"},
+ {"all":["ốp trong"],"img":"/img/acc/op-trong.webp"},
+ {"all":["magsafe"],"img":"/img/acc/op-magsafe.webp"},
+ {"all":["mắt camera"],"img":"/img/acc/mat-camera.webp"},
+ {"all":["ppf"],"img":"/img/acc/ppf.webp"}
 ]
