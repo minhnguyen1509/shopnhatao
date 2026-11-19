@@ -232,6 +232,7 @@ function policyHtml(t) {
   const out = []; let ul = false;
   String(t || '').split('\n').forEach((l) => {
     const x = l.trim(); if (!x) return;
+    if (x.startsWith('+ ') && ul) { out[out.length - 1] = out[out.length - 1].replace(/<\/li>$/, '<br>– ' + mdLine(x.slice(2)) + '</li>'); return; }
     if (x.startsWith('- ')) { if (!ul) { out.push('<ul style="margin:4px 0 8px;padding-left:20px">'); ul = true; } out.push('<li style="margin:2px 0">' + mdLine(x.slice(2)) + '</li>'); return; }
     if (ul) { out.push('</ul>'); ul = false; }
     if (x.startsWith('## ')) out.push('<h2 style="font-size:18px;text-align:center;margin:0 0 10px">' + mdLine(x.slice(3)) + '</h2>');
