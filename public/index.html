@@ -1046,7 +1046,7 @@ const ACT={
     <div class="foot"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">Xác nhận trả hàng</button></div></form>`)},
   ordCancel:async d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;closeModal();
     await W(async()=>{await col('orders').doc(o.id).update({status:'cancelled',staff:S.staff});for(const it of (o.items||[])){if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u&&u.status==='reserved'&&u.orderCode===o.code)await safeUpd('inventory',u.id,{status:'instock',orderCode:''})}}},'Đã hủy đơn')},
-  receipt:d=>{const o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;S.rcptO=o;
+  receipt:d=>{let o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;if(!o.id&&o.code)o={...o,id:o.code};S.rcptO=o;
     openModal(`<h2>${esc(SET().invTitle||'Phiếu bảo hành')} · ${esc(o.code)}</h2><p class="muted" style="margin-top:0">${esc(o.customerName||'Khách lẻ')}${o.phone?' · '+esc(o.phone):''} · Tổng ${money(o.total)}</p>
     <form data-form="printInv"><div class="fgrid"><div class="full"><label>Địa chỉ khách</label><input name="address" value="${esc(o.customerAddress||'')}"></div>
     <div><label>Người bán hàng</label><input name="seller" value="${esc(o.staff||S.staff||'')}"></div><div><label>Email khách (để gửi phiếu)</label><input name="email" type="email" value="${esc(o.customerEmail||'')}" placeholder="khach@gmail.com"></div>
@@ -1072,7 +1072,7 @@ const ACT={
     const code=mkCode('HD');const items=S.cart.map(x=>({...x}));const subtotal=items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const discount=discAmt(S.posCust.disc,subtotal);const total=Math.max(0,subtotal-discount);const promo=(S.posCust.promo||'').trim();
     const paidIn=String(S.posCust.paid||'').trim();const o={code,source:'store',customerName:S.posCust.name.trim()||'Khách lẻ',phone:normPhone(S.posCust.phone),customerAddress:(S.posCust.address||'').trim(),paid:paidIn===''?total:Math.min(total,num(paidIn)),pay:S.posCust.pay,items,subtotal,discount,promo,total,deposit:0,status:'done',createdAt:now(),doneAt:now(),staff:S.staff,note:''};
     const ok=await W(async()=>{await col('orders').doc(code).set(o);await applyDone(items,code)},'Đã bán xong');
-    if(ok){S.cart=[];S.posCust={name:'',phone:'',address:'',paid:'',pay:'Tiền mặt',disc:'',promo:''};render();ACT.receipt({o})}},
+    if(ok){S.cart=[];S.posCust={name:'',phone:'',address:'',paid:'',pay:'Tiền mặt',disc:'',promo:''};render();ACT.receipt({id:code,o:{...o,id:code}})}},
   invForm:d=>{const x=d.id?S.inv.find(i=>i.id===d.id):null;S.formImgs=unitImgs(x).slice();S.formOrig=S.formImgs.slice();openModal(invFormHTML(x));renderFormImgs()},
   invSortBy:d=>{if(S.invSK===d.k)S.invSD=S.invSD==='asc'?'desc':'asc';else{S.invSK=d.k;S.invSD=['name','imei','cond','status'].includes(d.k)?'asc':'desc'}render()},
   invSame:d=>{const x=S.inv.find(i=>i.id===d.id);if(!x)return;S.invGroup='';S.invF={...S.invF,model:x.model,storage:x.storage||'',color:x.color||''};render()},

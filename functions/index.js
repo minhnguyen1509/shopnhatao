@@ -279,7 +279,9 @@ exports.sendInvoiceEmail = onCall(async (req) => {
   const data = req.data || {};
   const to = str(data.to, 120).toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new HttpsError('invalid-argument', 'Email khách chưa đúng.');
-  const os = await db.doc('orders/' + str(data.orderId, 80)).get();
+  const oid = str(data.orderId, 80);
+  if (!oid) throw new HttpsError('invalid-argument', 'Thiếu mã đơn, tải lại trang rồi thử lại.');
+  const os = await db.doc('orders/' + oid).get();
   if (!os.exists) throw new HttpsError('not-found', 'Không tìm thấy đơn hàng.');
   const o = os.data();
   const cred = await db.doc('private/mail').get();
