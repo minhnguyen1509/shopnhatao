@@ -19,3 +19,5 @@ jobs:
           fi
           for id in $(gcloud firestore backups schedules list --database='(default)' --project $P --format='value(name.basename())'); do gcloud firestore backups schedules update --database='(default)' --backup-schedule="$id" --retention=14d --project $P >/dev/null; done
           echo "== Lịch sao lưu"; gcloud firestore backups schedules list --database='(default)' --project $P
+          echo "== Chạy thử sao lưu file"; J=$(gcloud scheduler jobs list --location=asia-southeast1 --project $P --format='value(name.basename())' | grep -i nightly | head -1); echo "job: $J"; gcloud scheduler jobs run "$J" --location=asia-southeast1 --project $P && sleep 45
+          echo "== File trong Storage"; gcloud storage ls -l "gs://shopnhatao-b8f59.firebasestorage.app/backups/" --project $P || true
