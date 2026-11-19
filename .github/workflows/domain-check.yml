@@ -1,0 +1,24 @@
+name: Kiểm tra tên miền
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Trạng thái
+        env:
+          P: shopnhatao-b8f59
+        run: |
+          for n in shopnhatao.com www.shopnhatao.com _acme-challenge.shopnhatao.com _acme-challenge.www.shopnhatao.com; do echo "== DNS $n"; dig +short A $n @8.8.8.8; dig +short CNAME $n @8.8.8.8; dig +short TXT $n @8.8.8.8; done
+          T=$(gcloud auth print-access-token)
+          for d in shopnhatao.com www.shopnhatao.com; do
+            echo "== FIREBASE $d"
+            curl -sS -H "Authorization: Bearer $T" -H "x-goog-user-project: $P" "https://firebasehosting.googleapis.com/v1beta1/projects/$P/sites/$P/customDomains/$d" | jq -c '{hostState,ownershipState,cert:.cert.state,issues}'
+          done
+          echo "== HTTPS"; curl -sSI https://shopnhatao.com 2>&1 | head -3 || true
