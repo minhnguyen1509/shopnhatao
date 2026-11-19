@@ -146,6 +146,13 @@ footer.sh-foot{border-top:1px solid var(--line);padding:24px 0 90px;color:var(--
 @media (max-width:600px){.rail{grid-auto-columns:46%}.rail-nav{display:none}}
 @media (max-width:600px){#lh .contact{grid-template-columns:1fr;gap:10px}#lh .contact .panel{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:14px 16px}.contact .panel b{flex:0 0 auto}.contact .panel>span,.contact .panel>a{text-align:right}}
 .ship-opt{display:flex;gap:10px;flex-wrap:wrap}.ship-opt label{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:500;cursor:pointer;background:var(--card)}.ship-opt input{width:auto;margin:0}.ship-opt label:has(input:checked){border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.bn{position:relative;border-radius:22px;overflow:hidden;background:var(--bg2)}.bn-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.bn-track::-webkit-scrollbar{display:none}
+.bn-slide{flex:0 0 100%;scroll-snap-align:start;aspect-ratio:16/10;display:block}.bn-slide img{width:100%;height:100%;object-fit:cover;display:block}
+.bn-nav{position:absolute;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:0;background:rgba(255,255,255,.85);font-size:22px;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}.bn-nav.l{left:10px}.bn-nav.r{right:10px}
+.bn-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}.bn-dots button{width:8px;height:8px;border-radius:99px;border:0;padding:0;background:rgba(255,255,255,.6);cursor:pointer;transition:width .2s}.bn-dots button.on{width:22px;background:#fff}
+.hero-bn{align-self:center}.mob-bn{display:none}
+.bn-admin{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}.bn-item{border:1px solid var(--line);border-radius:12px;padding:8px}.bn-item img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block}
+@media (max-width:900px){.hero-bn{display:none}.mob-bn{display:block;margin:4px auto 8px}.bn-nav{display:none}.bn{border-radius:16px}}
 .promo-box{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
 .ret-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}.ret-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.ret-chk{display:flex;gap:10px;align-items:flex-start;font-weight:500}.ret-chk input{width:auto;margin-top:3px}.ret-chk small{display:block;font-size:12px}
 .adm aside .tab .n{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;font-weight:700}
@@ -368,10 +375,12 @@ let rq=0;function schedule(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;ren
 function render(){
   const ae=document.activeElement,aid=ae&&ae.id&&$('#app').contains(ae)?ae.id:null;let ss,se;try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
   const asd=$('.adm aside'),asl=asd?asd.scrollLeft:0;
+  const bnPos={};document.querySelectorAll('[data-bn]').forEach(t=>bnPos[t.id]=t.scrollLeft);
   $('#app').innerHTML=S.view==='admin'?adminHTML():shopHTML();
   {const as=$('.adm aside');if(as&&as.scrollWidth>as.clientWidth){as.scrollLeft=asl;const on=as.querySelector('.tab.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<as.scrollLeft||r>as.scrollLeft+as.clientWidth)as.scrollLeft=Math.max(0,l-as.clientWidth/2+on.offsetWidth/2)}}}
   $('#dl-models').innerHTML=[...new Set([...S.inv.map(x=>x.model),...S.svc.map(x=>x.model)].filter(Boolean))].sort().map(m=>`<option value="${esc(m)}">`).join('');
   $('#dl-source').innerHTML=[...new Set(['Thu cũ của khách','Khách đổi máy (thu cũ đổi mới)','Nhà phân phối chính hãng','Mối buôn / đối tác',...S.inv.map(x=>x.source).filter(Boolean)])].map(s=>`<option value="${esc(s)}">`).join('');$('#dl-storage').innerHTML=STORAGES.map(s=>`<option value="${s}">`).join('');$('#dl-colors').innerHTML=Object.keys(COLORS).map(c=>`<option value="${esc(c[0].toUpperCase()+c.slice(1))}">`).join('');
+  for(const k in bnPos){const t=document.getElementById(k);if(t){t.scrollLeft=bnPos[k];bnSync(t)}}
   if(aid){const el=document.getElementById(aid);if(el){el.focus();try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
 }
 function modebar(){return ''}
@@ -427,6 +436,13 @@ function ccHTML(){const L=ccLines();const st=SET();if(L.length!==S.ccart.length)
     <div class="full"><label>Ghi chú</label><input name="note" placeholder="Giờ nhận hàng, lưu ý cho shop…"></div></div>
     <div class="box" style="margin-top:12px">${dep?`Đặt cọc giữ máy: <b>${money(dep)}</b> (${money(st.deposit)}/máy), trừ vào giá khi nhận. Gửi đơn xong bạn nhận mã đơn và thông tin chuyển khoản.`:'Không cần đặt cọc. Shop giữ hàng và gọi xác nhận cho bạn.'}</div>
     <div class="foot"><button type="button" class="btn ghost" data-act="close">Xem thêm hàng</button><button class="btn btn-red">Gửi đơn</button></div></form>`}
+const bannerList=()=>(SET().banners||[]).filter(b=>b&&b.img);
+function bannerHTML(id,cls){const L=bannerList();return `<div class="bn ${cls}"><div class="bn-track" id="${id}" data-bn>${L.map((b,i)=>`<${b.link?`a href="${esc(b.link)}" target="_blank" rel="noopener"`:'div'} class="bn-slide"><img src="${esc(imgUrl(b.img))}" alt="Banner ${i+1}" ${i?'loading="lazy"':''}></${b.link?'a':'div'}>`).join('')}</div>${L.length>1?`<button class="bn-nav l" data-act="bnMove" data-id="${id}" data-n="-1" aria-label="Ảnh trước">‹</button><button class="bn-nav r" data-act="bnMove" data-id="${id}" data-n="1" aria-label="Ảnh sau">›</button><div class="bn-dots">${L.map((b,i)=>`<button data-act="bnGo" data-id="${id}" data-i="${i}" class="${i?'':'on'}" aria-label="Ảnh ${i+1}"></button>`).join('')}</div>`:''}</div>`}
+function bnIdx(t){return Math.round(t.scrollLeft/Math.max(1,t.clientWidth))}
+function bnSync(t){const i=bnIdx(t);const d=t.parentNode.querySelectorAll('.bn-dots button');d.forEach((b,j)=>b.classList.toggle('on',j===i))}
+setInterval(()=>{if(document.hidden)return;document.querySelectorAll('[data-bn]').forEach(t=>{if(t._hold&&Date.now()-t._hold<6000)return;const n=t.children.length;if(n<2||!t.offsetParent)return;const i=(bnIdx(t)+1)%n;t.scrollTo({left:i*t.clientWidth,behavior:'smooth'})})},4500);
+document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.bn!=null){bnSync(t)}},true);
+['touchstart','pointerdown','wheel'].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target.closest&&e.target.closest('[data-bn]');if(t)t._hold=Date.now()},{passive:true}));
 function customers(){
   const m={};const add=(phone,name,t)=>{if(!phone)return null;const c=m[phone]=m[phone]||{phone,name:'',orders:0,spent:0,repairs:0,last:0};if(name&&name!=='Khách lẻ')c.name=name;c.last=Math.max(c.last,t||0);return c};
   S.orders.filter(SOLD).forEach(o=>{const c=add(o.phone,o.customerName,o.doneAt||o.createdAt);if(c){c.orders++;c.spent+=(+o.total||0)-(+o.refundTotal||0)}});
@@ -458,12 +474,13 @@ function shopHTML(){
     <div class="row" style="flex-wrap:wrap"><button class="btn btn-ink" data-act="scroll" data-to="sp">Xem máy đang có</button><button class="btn" data-act="book">Đặt lịch sửa chữa</button></div>
     <div class="trust"><div><b>Uy tín từ 2020</b>Hơn 6 năm phục vụ khách nhà Táo</div><div><b>Kiểm máy trước mặt</b>Test đủ chức năng khi giao</div><div><b>Đặt online, giữ hàng ngay</b>Nhân viên gọi xác nhận trong ít phút</div><div><b>Bảo hành tại shop</b>Tra cứu online bằng SĐT</div></div>
   </div>
-  <div class="hero-art"><div class="bg"></div>
+  ${bannerList().length?bannerHTML('bn-hero','hero-bn'):`<div class="hero-art"><div class="bg"></div>
     <div class="ph" style="left:30px;top:40px;transform:rotate(-8deg)">${devSVG('iPad','Bạc')}</div>
     <div class="ph" style="left:150px;top:10px">${phoneSVG('Đen')}</div>
     <div class="ph" style="left:255px;top:50px;transform:rotate(9deg)">${devSVG('Apple Watch','Cam')}</div>
-  </div>
+  </div>`}
 </div></section>
+${bannerList().length?`<div class="wrap mob-bn">${bannerHTML('bn-mob','')}</div>`:''}
 
 <section class="blk" id="sp"><div class="wrap">
   <h2>Sản phẩm</h2><p class="sub">Giá đã gồm kiểm tra máy. Mua máy mới hay cũ đều được dán cường lực xịn, tặng ốp chống sốc và bộ sạc nhanh.</p>
@@ -890,7 +907,10 @@ function aImp(){
 
 function aSet(){
   const st=SET();
+  const BL=st.banners||[];
   return hd('Cài đặt cửa hàng','Thông tin hiện trên website và trong form đặt cọc.')+
+  `<div class="panel" style="margin-bottom:16px"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div><b style="font-size:16px">Banner trang chủ</b><div class="muted" style="font-size:13px">Ảnh chạy vuốt qua lại ở đầu trang khách (máy tính: bên phải tiêu đề; điện thoại: ngay trên mục Sản phẩm). Nên dùng ảnh ngang tỉ lệ 16:10, khoảng 1600×1000. Có thể copy ảnh rồi bấm ⌘/Ctrl+V để dán.</div></div><button class="btn btn-ink sm" data-act="pickPhoto" data-kind="banner" ${ASSETS?'':'disabled'}>+ Thêm ảnh banner</button><button class="btn sm ghost mob-paste" data-act="pastePhoto" data-kind="banner">📋 Dán ảnh</button></div>
+  ${BL.length?`<div class="bn-admin">${BL.map((b,i)=>`<div class="bn-item"><img src="${esc(imgUrl(b.img))}" alt=""><div class="row" style="gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn sm ghost" data-act="bnSwap" data-i="${i}" data-n="-1" ${i?'':'disabled'}>←</button><button class="btn sm ghost" data-act="bnSwap" data-i="${i}" data-n="1" ${i<BL.length-1?'':'disabled'}>→</button><button class="btn sm ghost" style="color:var(--red)" data-act="bnDel" data-i="${i}">Xóa</button></div><div class="row" style="gap:6px;margin-top:6px"><input id="bnl-${i}" value="${esc(b.link||'')}" placeholder="Link khi bấm (không bắt buộc)" style="font-size:12.5px;padding:6px 8px"><button class="btn sm" data-act="bnLink" data-i="${i}">Lưu</button></div></div>`).join('')}</div>`:'<div class="muted" style="font-size:13px;margin-top:10px">Chưa có banner. Trang khách đang hiện hình minh họa mặc định.</div>'}</div>`+
   `<form class="panel" data-form="settings"><div class="fgrid">
    <div><label>Tên cửa hàng</label><input name="name" value="${esc(st.name)}"></div>
    <div><label>Giờ mở cửa</label><input name="hours" value="${esc(st.hours)}"></div>
@@ -1005,6 +1025,11 @@ const ACT={
   sf:d=>{S.shopFilter=d.v;S.accCat='';render()},
   sfAcc:d=>{S.shopFilter='acc';S.accCat=d.v||'';S.q='';render();const el=document.getElementById('sp');if(el)el.scrollIntoView({behavior:'smooth'})},
   sfCat:d=>{S.shopFilter=d.v;S.accCat='';S.q='';render();const el=document.getElementById('sp');if(el)el.scrollIntoView({behavior:'smooth'})},
+  bnMove:d=>{const t=document.getElementById(d.id);if(!t)return;t._hold=Date.now();const n=t.children.length;const i=(bnIdx(t)+(+d.n)+n)%n;t.scrollTo({left:i*t.clientWidth,behavior:'smooth'})},
+  bnGo:d=>{const t=document.getElementById(d.id);if(!t)return;t._hold=Date.now();t.scrollTo({left:(+d.i)*t.clientWidth,behavior:'smooth'})},
+  bnDel:async d=>{const L=(SET().banners||[]).slice();L.splice(+d.i,1);await W(()=>DB.doc('settings/shop').set({banners:L},{merge:true}),'Đã xóa banner')},
+  bnSwap:async d=>{const L=(SET().banners||[]).slice();const i=+d.i,j=i+(+d.n);if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]];await W(()=>DB.doc('settings/shop').set({banners:L},{merge:true}),'Đã đổi thứ tự')},
+  bnLink:async d=>{const L=(SET().banners||[]).slice();const el=document.getElementById('bnl-'+d.i);if(!el||!L[+d.i])return;L[+d.i]={...L[+d.i],link:el.value.trim()};await W(()=>DB.doc('settings/shop').set({banners:L},{merge:true}),'Đã lưu link')},
   railMove:d=>{const r=document.getElementById(d.id);if(r)r.scrollBy({left:(+d.n)*r.clientWidth*0.85,behavior:'smooth'})},
   set:d=>{S[d.k]=d.k==='phoNew'?d.v==='1':d.k==='pvMob'?d.v==='1':d.v;render()},
   pickPhoto:d=>{S.pick={...d};S.lastPick={t:{...d},at:Date.now()};const f=$('#file-pick');f.multiple=d.kind==='unit';f.value='';f.click()},
@@ -1337,6 +1362,8 @@ document.addEventListener('paste',e=>{const files=[...((e.clipboardData&&e.clipb
 $('#file-pick').addEventListener('change',e=>onFiles([...(e.target.files||[])],S.pick));
 async function onFiles(files,t){const f=files[0];if(!f||!t)return;if(!ASSETS)return toast('Bạn chưa có quyền tải ảnh');
   if(t.kind==='form'){for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});(S.formImgs=S.formImgs||[]).push(r.id);renderFormImgs()}catch(err){console.error(err);toast(err&&err.code==='heic'?'Không đọc được ảnh HEIC ('+(err.detail||'').slice(0,60)+')':'Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}toast('Đã tải ảnh xong, nhớ bấm Lưu');S.pick=null;return}
+  if(t.kind==='banner'){const ids=[];for(let i=0;i<files.length;i++){toast(`Đang tải banner ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});ids.push(r.id)}catch(err){console.error(err);toast('Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}
+    if(ids.length){const L=[...(SET().banners||[]),...ids.map(img=>({img,link:''}))];await W(()=>DB.doc('settings/shop').set({banners:L},{merge:true}),`Đã thêm ${ids.length} banner`)}S.pick=null;return}
   if(t.kind==='unit'){const ids=[];for(let i=0;i<files.length;i++){toast(`Đang tải ảnh ${i+1}/${files.length}…`);try{const b=await shrink(files[i]);const r=await ASSETS.upload(b,b.type?undefined:{type:'image/jpeg'});ids.push(r.id)}catch(err){console.error(err);toast(err&&err.code==='heic'?'Không đọc được ảnh HEIC ('+(err.detail||'').slice(0,60)+')':'Không tải được ảnh'+(err&&err.code?' ('+err.code+')':''))}}
     if(ids.length){const u=S.inv.find(x=>x.id===t.id);const ims=[...unitImgs(u),...ids];if(await W(()=>col('inventory').doc(t.id).update({imgs:ims,img:''}),`Đã thêm ${ids.length} ảnh`))setTimeout(()=>ACT.unitPhotos({id:t.id}),250)}
     S.pick=null;return}
