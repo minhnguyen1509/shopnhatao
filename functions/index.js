@@ -218,7 +218,8 @@ exports.warrantyLookup = onCall(async (req) => {
 /* ---------- gửi phiếu bảo hành qua email (Gmail SMTP) ---------- */
 const nodemailer = require('nodemailer');
 const MAIL_FROM = 'hm.istore25@gmail.com';
-const LOGO_URL = 'https://shopnhatao.com/logo-mark.webp';
+const LOGO_URL = 'cid:logo@shopnhatao';
+const LOGO_FILE = require('path').join(__dirname, 'logo.png');
 async function requireStaff(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Bạn cần đăng nhập.');
   const me = await db.doc('staff/' + req.auth.uid).get();
@@ -261,6 +262,18 @@ ${withPolicy && shop.policy ? `<hr style="border:0;border-top:1px solid #ccc;mar
 <p style="margin-top:22px;font-size:12px;color:#666">Email này được gửi tự động từ ${h(shop.name)} khi bạn mua hàng. Cần hỗ trợ, bạn trả lời email này hoặc gọi ${h(shop.phones)}.</p></div>`;
 }
 
+function titleCase(t) { const x = String(t || 'Phiếu bảo hành').toLowerCase(); return x.charAt(0).toUpperCase() + x.slice(1); }
+function invoiceText(o, shop, conds, withPolicy) {
+  const L = [`${shop.name}`, `${shop.company}`, `${shop.address}`, `Điện thoại: ${shop.phones}`, '', `${titleCase(shop.title)} - đơn ${o.code || ''}`,
+    `Khách hàng: ${o.customerName || ''}${o.phone ? ' - ' + o.phone : ''}`, ''];
+  (o.items || []).forEach((it, i) => L.push(`${i + 1}. ${it.name}${(+it.qty || 1) > 1 ? ' x' + it.qty : ''}${it.gift ? ' (quà tặng)' : ''}${it.imei ? ' | Serial: ' + it.imei : ''}${conds[i] ? ' | ' + conds[i] : ''}${it.warrantyMonths ? ' | BH ' + it.warrantyMonths + ' tháng' : ''} | ${vnd((+it.price || 0) * (+it.qty || 1))}đ`));
+  if (+o.discount) L.push('', `Cộng tiền hàng: ${vnd(o.subtotal)}đ`, `Khuyến mại${o.promo ? ' (' + o.promo + ')' : ''}: -${vnd(o.discount)}đ`);
+  L.push(`Tổng cộng: ${vnd(o.total)}đ`, '');
+  if (withPolicy && shop.policy) L.push(String(shop.policy).replace(/\*\*/g, '').replace(/^#+ /gm, ''), '');
+  L.push(`Cảm ơn bạn đã mua hàng tại ${shop.name}. Cần hỗ trợ, bạn trả lời email này hoặc gọi ${shop.phones}.`);
+  return L.join('\n');
+}
+
 exports.setMailPassword = onCall(async (req) => {
   await requireOwner(req);
   const pass = String((req.data || {}).pass || '').replace(/\s/g, '');
@@ -297,8 +310,11 @@ exports.sendInvoiceEmail = onCall(async (req) => {
   try {
     await t.sendMail({
       from: `"${shop.name}" <${cred.data().user}>`, to, replyTo: cred.data().user,
-      subject: `${shop.title} ${o.code || ''} - ${shop.name}`.trim(),
+      subject: `${shop.name}: ${titleCase(shop.title)} cho đơn ${o.code || ''}`.trim(),
       html: invoiceEmail(o, shop, conds, !!data.policy),
+      text: invoiceText(o, shop, conds, !!data.policy),
+      attachments: [{ filename: 'logo.png', path: LOGO_FILE, cid: 'logo@shopnhatao' }],
+      headers: { 'X-Entity-Ref-ID': String(o.code || oid) },
     });
   } catch (e) {
     console.error('sendMail', e);
