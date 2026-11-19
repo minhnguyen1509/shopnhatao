@@ -22,11 +22,4 @@ jobs:
           mkdir -p imgs
           node -e "const d=require('./public-data.json');const u=new Set();for(const c of ['inventory','accessories','photos'])for(const x of d[c]){const a=(x.imgs&&x.imgs.length?[x.imgs[0]]:[]).concat(x.img?[x.img]:[]).concat(x.url?[x.url]:[]);a.forEach(v=>{if(/^https?:/.test(v))u.add(v)})}require('fs').writeFileSync('urls.txt',[...u].join('\n'))"
           i=0; while read -r url; do [ -z "$url" ] && continue; i=$((i+1)); curl -sSL "$url" -o "imgs/raw$i" && echo "$i $url" >> imgs/map.txt; done < urls.txt
-          ls imgs | head
-      - uses: actions/upload-artifact@v4
-        with:
-          name: preview-data
-          path: |
-            public-data.json
-            imgs/
-          retention-days: 1
+          tar czf pv.tgz public-data.json imgs && echo "SIZE $(wc -c < pv.tgz)" && echo '<<<PV' && base64 -w 0 pv.tgz && echo && echo 'PV>>>'
