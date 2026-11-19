@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() { return get(/databases/$(database)/documents/staff/$(request.auth.uid)).data; }
+    function isStaff() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+        && me().status != 'off';
+    }
+    function isOwner() { return isStaff() && me().perm == 'owner'; }
+
+    // Công khai: khách xem hàng trên web
+    match /inventory/{id}   { allow read: if true; allow write: if isStaff(); }
+    match /accessories/{id} { allow read: if true; allow write: if isStaff(); }
+    match /services/{id}    { allow read: if true; allow write: if isStaff(); }
+    match /photos/{id}      { allow read: if true; allow write: if isStaff(); }
+    match /settings/{id}    { allow read: if true; allow write: if isOwner(); }
+
+    // Nội bộ: đơn hàng, sửa chữa (khách tạo đơn qua Cloud Functions)
+    match /orders/{id}  { allow read, write: if isStaff(); }
+    match /repairs/{id} { allow read, write: if isStaff(); }
+
+    // Hồ sơ nhân viên: chỉ sửa qua Cloud Functions (chủ shop)
+    match /staff/{uid}  { allow read: if isStaff(); allow write: if false; }
+
+    // Chấm công: nhân viên chỉ thấy và tự chấm ca của mình
+    match /shifts/{id} {
+      allow read: if isOwner() || (isStaff() && resource.data.staffId == request.auth.uid);
+      allow create: if isOwner() || (isStaff() && request.resource.data.staffId == request.auth.uid);
+      allow update: if isOwner() || (isStaff() && resource.data.staffId == request.auth.uid
+                                     && request.resource.data.staffId == request.auth.uid);
+      allow delete: if isOwner();
+    }
+
+    // Chỉ chủ shop: giá nhập, nguồn nhập, bảng lương
+    match /payroll/{id} { allow read, write: if isOwner(); }
+    match /costs/{id}   { allow read, write: if isOwner(); }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
