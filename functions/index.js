@@ -155,6 +155,42 @@ exports.placeDeposit = onCall(async (req) => {
   return { code, deposit };
 });
 
+exports.placeCart = onCall(async (req) => {
+  const d = req.data || {};
+  const name = needName(d.name), phone = needPhone(d.phone), note = str(d.note, 300);
+  const list = Array.isArray(d.items) ? d.items.slice(0, 30) : [];
+  if (!list.length) throw new HttpsError('invalid-argument', 'Giỏ hàng đang trống.');
+  const st = await settings();
+  const per = Math.max(0, Math.round(+st.deposit || 500000));
+  const code = mkCode('DH');
+  let out = { code, deposit: 0 };
+  await db.runTransaction(async (tx) => {
+    const uids = [...new Set(list.filter((x) => x && x.t === 'u').map((x) => str(x.id, 128)).filter(Boolean))];
+    const accs = new Map();
+    list.filter((x) => x && x.t === 'a').forEach((x) => { const id = str(x.id, 128); if (id) accs.set(id, Math.max(1, Math.min(20, Math.round(+x.qty || 1)) + (accs.get(id) || 0))); });
+    const uref = uids.map((id) => db.doc('inventory/' + id)), aref = [...accs.keys()].map((id) => db.doc('accessories/' + id));
+    const us = uref.length ? await tx.getAll(...uref) : [], as = aref.length ? await tx.getAll(...aref) : [];
+    const items = [];
+    us.forEach((u) => {
+      if (!u.exists || u.data().status !== 'instock') throw new HttpsError('failed-precondition', 'Có máy trong giỏ vừa được người khác đặt, bạn mở lại giỏ hàng để kiểm tra nhé.');
+      const x = u.data();
+      items.push({ kind: 'phone', refId: u.id, name: `${x.model || ''} ${x.storage || ''} ${x.color || ''}${x.origin ? ' ' + x.origin : ''}`.replace(/\s+/g, ' ').trim(), imei: x.imei || '', price: +x.price || 0, cost: 0, qty: 1, warrantyMonths: +x.warrantyMonths || 0 });
+    });
+    as.forEach((a) => {
+      const x = a.exists ? a.data() : null;
+      if (!x || !(+x.qty > 0) || !(+x.price > 0)) throw new HttpsError('failed-precondition', 'Có phụ kiện trong giỏ vừa hết hàng, bạn mở lại giỏ hàng để kiểm tra nhé.');
+      items.push({ kind: 'acc', refId: a.id, name: x.name || '', imei: '', price: +x.price || 0, cost: 0, qty: Math.min(accs.get(a.id), +x.qty), warrantyMonths: 0 });
+    });
+    if (!items.length) throw new HttpsError('invalid-argument', 'Giỏ hàng đang trống.');
+    const total = items.reduce((s2, i) => s2 + i.price * i.qty, 0);
+    const deposit = per * us.length;
+    tx.set(db.doc('orders/' + code), { code, source: 'web', customerName: name, phone, note, items, total, deposit, status: 'pending', createdAt: now() });
+    us.forEach((u) => tx.update(u.ref, { status: 'reserved', orderCode: code }));
+    out = { code, deposit };
+  });
+  return out;
+});
+
 exports.placeAccOrder = onCall(async (req) => {
   const d = req.data || {};
   const name = needName(d.name), phone = needPhone(d.phone), note = str(d.note, 300);
