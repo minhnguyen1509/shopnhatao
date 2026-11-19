@@ -1,0 +1,33 @@
+name: Gắn tên miền riêng
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  domain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Đăng nhập Google Cloud bằng khóa dịch vụ
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Thêm shopnhatao.com và www vào Firebase Hosting, in bản ghi DNS cần khai báo
+        env:
+          P: shopnhatao-b8f59
+        run: |
+          set -u
+          T=$(gcloud auth print-access-token)
+          API=https://firebasehosting.googleapis.com/v1beta1/projects/$P/sites/$P/customDomains
+          H=(-H "Authorization: Bearer $T" -H "x-goog-user-project: $P" -H "Content-Type: application/json")
+          curl -sS -X POST "${H[@]}" "$API?customDomainId=shopnhatao.com" -d '{}' | head -c 1500; echo
+          curl -sS -X POST "${H[@]}" "$API?customDomainId=www.shopnhatao.com" -d '{"redirectTarget":"shopnhatao.com"}' | head -c 1500; echo
+          sleep 20
+          for d in shopnhatao.com www.shopnhatao.com; do
+            echo "===== $d ====="
+            curl -sS "${H[@]}" "$API/$d" | jq '{hostState,ownershipState,certState:.cert.state,requiredDnsUpdates,certVerification:.cert.verification,issues}'
+          done
+          # cho phép đăng nhập từ tên miền mới
+          C=$(curl -sS "${H[@]}" "https://identitytoolkit.googleapis.com/admin/v2/projects/$P/config")
+          NEW=$(echo "$C" | jq -c '(.authorizedDomains // []) + ["shopnhatao.com","www.shopnhatao.com"] | unique')
+          curl -sS -X PATCH "${H[@]}" "https://identitytoolkit.googleapis.com/admin/v2/projects/$P/config?updateMask=authorizedDomains" -d "{\"authorizedDomains\":$NEW}" | jq -c .authorizedDomains
