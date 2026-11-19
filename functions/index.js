@@ -218,7 +218,7 @@ exports.warrantyLookup = onCall(async (req) => {
 /* ---------- gửi phiếu bảo hành qua email (Gmail SMTP) ---------- */
 const nodemailer = require('nodemailer');
 const MAIL_FROM = 'hm.istore25@gmail.com';
-const LOGO_URL = 'https://shopnhatao-b8f59.web.app/logo-mark.webp';
+const LOGO_URL = 'https://shopnhatao.com/logo-mark.webp';
 async function requireStaff(req) {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Bạn cần đăng nhập.');
   const me = await db.doc('staff/' + req.auth.uid).get();
