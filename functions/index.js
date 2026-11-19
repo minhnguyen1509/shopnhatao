@@ -197,6 +197,7 @@ exports.warrantyLookup = onCall(async (req) => {
   const warrantyEnd = (o, it) => { if (!it.warrantyMonths) return null; const dd = new Date(o.doneAt || o.createdAt); dd.setMonth(dd.getMonth() + (+it.warrantyMonths)); return dd.getTime(); };
   const pushOrder = (o) => (o.items || []).forEach((it) => {
     if (it.kind !== 'phone') return;
+    if ((+it.retQty || 0) >= (+it.qty || 1)) return; // khách đã trả lại
     if (byImei && !endsT(it.imei)) return;
     items.push({ name: it.name, date: o.doneAt || o.createdAt, end: warrantyEnd(o, it), tail: String(it.imei || '').slice(-5) });
   });

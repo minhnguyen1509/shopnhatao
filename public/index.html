@@ -138,6 +138,7 @@ footer.sh-foot{border-top:1px solid var(--line);padding:24px 0 90px;color:var(--
 .adm aside .tab:hover{background:#ffffff10}
 .adm aside .tab.on{background:#FBF8F3;color:var(--ink);font-weight:700}
 .adm aside .mob-only{display:none}
+.ret-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}.ret-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.ret-chk{display:flex;gap:10px;align-items:flex-start;font-weight:500}.ret-chk input{width:auto;margin-top:3px}.ret-chk small{display:block;font-size:12px}
 .adm aside .tab .n{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;font-weight:700}
 .adm aside .who{margin-top:auto;padding:12px 8px 0;border-top:1px solid #ffffff1a;font-size:12px;color:#A99F92}
 .adm aside .who select{background:#ffffff12;border-color:#ffffff22;color:#fff;margin-top:6px}
@@ -292,7 +293,7 @@ const normPhone=p=>String(p||'').replace(/\D/g,'').replace(/^84/,'0');
 const mkCode=p=>{const d=new Date();return p+String(d.getFullYear()).slice(2)+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'-'+Math.random().toString(36).slice(2,6).toUpperCase()};
 const COND={new:'Mới 100%',likenew:'Like new 99%',used:'Đã qua sử dụng'};
 const INV_ST={instock:['Trong kho','green'],reserved:['Đang giữ cọc','amber'],sold:['Đã bán','gray']};
-const ORD_ST={pending:['Chờ xác nhận','red'],confirmed:['Đã xác nhận','amber'],done:['Hoàn tất','green'],cancelled:['Đã hủy','gray']};
+const ORD_ST={pending:['Chờ xác nhận','red'],confirmed:['Đã xác nhận','amber'],done:['Hoàn tất','green'],cancelled:['Đã hủy','gray'],returned:['Khách trả hàng','gray']};
 const REP_ST={booked:['Đặt lịch online','blue'],received:['Đã tiếp nhận','amber'],repairing:['Đang sửa tại shop','amber'],sent:['Đã gửi đối tác','amber'],ready:['Sửa xong, chờ lấy','green'],returned:['Đã trả khách','gray'],cancelled:['Đã hủy','gray']};
 const ACC_CATS=['Sạc','Cáp','Tai nghe','Ốp lưng','Cường lực','Pin dự phòng','Khác'];
 const ACC_EMO={'Sạc':'🔌','Cáp':'🔗','Tai nghe':'🎧','Ốp lưng':'📱','Cường lực':'🛡️','Pin dự phòng':'🔋','Khác':'🧩'};
@@ -394,16 +395,20 @@ function phoneGroups(){
   return Object.values(m).map(g=>({...g,min:Math.min(...g.units.map(u=>+u.price||0)),colors:[...new Set(g.units.map(u=>u.color))],storages:[...new Set(g.units.map(u=>u.storage).filter(Boolean))].sort((a,b)=>STORAGES.indexOf(a)-STORAGES.indexOf(b))}));
 }
 function warrantyEnd(o,it){if(!it.warrantyMonths)return null;const d=new Date(o.doneAt||o.createdAt);d.setMonth(d.getMonth()+(+it.warrantyMonths));return d.getTime()}
+const SOLD=o=>o.status==='done'||o.status==='returned';
+const retQ=it=>+it.retQty||0,remQ=it=>Math.max(0,(+it.qty||1)-retQ(it));
+function unitCost(it){const cm=S.costMap||{};return +it.cost||(it.kind==='phone'?+((cm['inv-'+it.refId]||{}).costPrice||0):+((cm['acc-'+it.refId]||{}).cost||0))}
 function customers(){
   const m={};const add=(phone,name,t)=>{if(!phone)return null;const c=m[phone]=m[phone]||{phone,name:'',orders:0,spent:0,repairs:0,last:0};if(name&&name!=='Khách lẻ')c.name=name;c.last=Math.max(c.last,t||0);return c};
-  S.orders.filter(o=>o.status==='done').forEach(o=>{const c=add(o.phone,o.customerName,o.doneAt||o.createdAt);if(c){c.orders++;c.spent+=+o.total||0}});
+  S.orders.filter(SOLD).forEach(o=>{const c=add(o.phone,o.customerName,o.doneAt||o.createdAt);if(c){c.orders++;c.spent+=(+o.total||0)-(+o.refundTotal||0)}});
   S.repairs.filter(r=>r.status!=='cancelled').forEach(r=>{const c=add(r.phone,r.customerName,r.createdAt);if(c){c.repairs++;if(r.status==='returned')c.spent+=+r.quote||0}});
   return Object.values(m).sort((a,b)=>b.last-a.last);
 }
 const mKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
 function finance(){
   const by={};const g=k=>by[k]=by[k]||{rev:0,cost:0,phone:0,acc:0,rep:0,repCost:0};
-  S.orders.filter(o=>o.status==='done').forEach(o=>{const b=g(mKey(o.doneAt||o.createdAt));(o.items||[]).forEach(it=>{const cm=S.costMap||{};const uc=+it.cost||(it.kind==='phone'?+((cm['inv-'+it.refId]||{}).costPrice||0):+((cm['acc-'+it.refId]||{}).cost||0));const r=(+it.price||0)*(+it.qty||1),c=uc*(+it.qty||1);b.rev+=r;b.cost+=c;if(it.kind==='phone')b.phone+=r;else b.acc+=r})});
+  S.orders.filter(SOLD).forEach(o=>{(o.returns||[]).forEach(rt=>{const b=g(mKey(rt.at));b.rev-=+rt.refund||0;(rt.items||[]).forEach(x=>{const it=(o.items||[])[x.i];if(!it)return;const pr=(+it.price||0)*(+x.qty||1);if(it.kind==='phone')b.phone-=pr;else b.acc-=pr;if(x.restock)b.cost-=unitCost(it)*(+x.qty||1)})})});
+  S.orders.filter(SOLD).forEach(o=>{const b=g(mKey(o.doneAt||o.createdAt));(o.items||[]).forEach(it=>{const uc=unitCost(it);const r=(+it.price||0)*(+it.qty||1),c=uc*(+it.qty||1);b.rev+=r;b.cost+=c;if(it.kind==='phone')b.phone+=r;else b.acc+=r})});
   S.repairs.filter(r=>r.status==='returned').forEach(r=>{const b=g(mKey(r.returnedAt||r.createdAt));b.rev+=+r.quote||0;b.cost+=+r.cost||0;b.rep+=+r.quote||0;b.repCost+=+r.cost||0});
   return by;
 }
@@ -502,7 +507,7 @@ function bhResult(){
   const T=tail.toUpperCase();const byPhone=/^[+\d\s.]+$/.test(q)&&qp.length>=9&&qp.length<=11,byImei=!byPhone&&T.length>=5;const endT=s=>String(s||'').toUpperCase().endsWith(T);
   if(!byPhone&&!byImei)return `<div class="muted">Nhập đủ số điện thoại hoặc ít nhất 5 ký tự cuối của Serial/IMEI.</div>`;
   const out=[];
-  S.orders.filter(o=>o.status==='done').forEach(o=>(o.items||[]).forEach(it=>{if(it.kind!=='phone')return;if((byPhone&&o.phone===qp)||(byImei&&endT(it.imei))){const end=warrantyEnd(o,it);const ok=end&&end>now();out.push(`<div class="bh-item"><div><b>${esc(it.name)}</b><small class="muted" style="display:block">Mua ngày ${fmtD(o.doneAt||o.createdAt)} · Serial/IMEI …${esc(String(it.imei||'').slice(-5))}</small></div>${end?(ok?pill('Còn bảo hành đến '+fmtD(end),'green'):pill('Hết bảo hành '+fmtD(end),'gray')):pill('Không bảo hành','gray')}</div>`)}}));
+  S.orders.filter(SOLD).forEach(o=>(o.items||[]).forEach(it=>{if(it.kind!=='phone'||remQ(it)<=0)return;if((byPhone&&o.phone===qp)||(byImei&&endT(it.imei))){const end=warrantyEnd(o,it);const ok=end&&end>now();out.push(`<div class="bh-item"><div><b>${esc(it.name)}</b><small class="muted" style="display:block">Mua ngày ${fmtD(o.doneAt||o.createdAt)} · Serial/IMEI …${esc(String(it.imei||'').slice(-5))}</small></div>${end?(ok?pill('Còn bảo hành đến '+fmtD(end),'green'):pill('Hết bảo hành '+fmtD(end),'gray')):pill('Không bảo hành','gray')}</div>`)}}));
   S.repairs.filter(r=>(byPhone&&r.phone===qp)||(byImei&&endT(r.imei))).forEach(r=>{const s=REP_ST[r.status]||['',''];out.push(`<div class="bh-item"><div><b>Sửa chữa: ${esc(r.device)}</b><small class="muted" style="display:block">${esc(r.issue||'')} · Nhận ${fmtD(r.createdAt)}</small></div>${pill(s[0],s[1])}</div>`)});
   return out.length?out.join(''):`<div class="muted">Không tìm thấy thông tin. Bạn kiểm tra lại hoặc nhắn Zalo cho shop nhé.</div>`;
 }
@@ -536,8 +541,8 @@ const W_OK=()=>S.canWrite&&!S.noDb;
 
 function aDash(){
   const today=new Date();today.setHours(0,0,0,0);const t0=today.getTime();const mk=mKey(now());
-  const doneToday=S.orders.filter(o=>o.status==='done'&&(o.doneAt||0)>=t0);
-  const revToday=doneToday.reduce((s,o)=>s+(+o.total||0),0)+S.repairs.filter(r=>r.status==='returned'&&(r.returnedAt||0)>=t0).reduce((s,r)=>s+(+r.quote||0),0);
+  const doneToday=S.orders.filter(o=>SOLD(o)&&(o.doneAt||0)>=t0);
+  const revToday=doneToday.reduce((s,o)=>s+(+o.total||0),0)-S.orders.reduce((s,o)=>s+(o.returns||[]).filter(r=>(r.at||0)>=t0).reduce((a,r)=>a+(+r.refund||0),0),0)+S.repairs.filter(r=>r.status==='returned'&&(r.returnedAt||0)>=t0).reduce((s,r)=>s+(+r.quote||0),0);
   const f=finance()[mk]||{rev:0,cost:0};
   const inst=S.inv.filter(x=>x.status==='instock');
   const old=inst.filter(x=>daysAgo(x.createdAt)>30).sort((a,b)=>a.createdAt-b.createdAt);
@@ -565,20 +570,20 @@ function aDash(){
 function ordTable(list,compact){
   if(!list.length)return `<div class="empty">Không có đơn nào.</div>`;
   return `<div class="tbl-wrap"><table><thead><tr><th>Đơn</th><th>Khách</th>${compact?'':'<th>Sản phẩm</th>'}<th class="num">Tổng / cọc</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map(o=>{const s=ORD_ST[o.status]||['',''];
-    return `<tr><td><b>${esc(o.code)}</b><span class="s">${fmtDT(o.createdAt)} · ${o.source==='web'?'Web':'Tại quầy'}</span></td><td>${esc(o.customerName)}<span class="s">${esc(o.phone)}</span></td>${compact?'':`<td>${(o.items||[]).map(i=>`${esc(i.name)}${i.qty>1?' ×'+i.qty:''}${i.imei?`<span class="s">IMEI …${esc(String(i.imei).slice(-5))}</span>`:''}`).join('<br>')}${o.note?`<span class="s">Ghi chú: ${esc(o.note)}</span>`:''}</td>`}<td class="num"><b>${money(o.total)}</b>${o.deposit?`<span class="s">Cọc ${money(o.deposit)}</span>`:''}</td><td>${pill(s[0],s[1])}${o.staff?`<span class="s">${esc(o.staff)}</span>`:''}</td><td><div class="acts">${W_OK()?ordActs(o):''}</div></td></tr>`}).join('')}</tbody></table></div>`;
+    return `<tr><td><b>${esc(o.code)}</b><span class="s">${fmtDT(o.createdAt)} · ${o.source==='web'?'Web':'Tại quầy'}</span></td><td>${esc(o.customerName)}<span class="s">${esc(o.phone)}</span></td>${compact?'':`<td>${(o.items||[]).map(i=>`${esc(i.name)}${i.qty>1?' ×'+i.qty:''}${i.imei?`<span class="s">IMEI …${esc(String(i.imei).slice(-5))}</span>`:''}`).join('<br>')}${o.note?`<span class="s">Ghi chú: ${esc(o.note)}</span>`:''}${(o.returns||[]).map(r=>`<span class="s" style="color:var(--red)">↩ ${fmtDT(r.at)} trả ${(r.items||[]).map(x=>{const it=(o.items||[])[x.i];return it?esc(it.name)+((+x.qty||1)>1?' ×'+x.qty:''):''}).join(', ')} · hoàn ${money(r.refund)}${r.reason?' · '+esc(r.reason):''}${r.staff?' · '+esc(r.staff):''}</span>`).join('')}</td>`}<td class="num"><b>${money(o.total)}</b>${o.refundTotal?`<span class="s" style="color:var(--red)">Đã hoàn ${money(o.refundTotal)}</span>`:''}${o.deposit?`<span class="s">Cọc ${money(o.deposit)}</span>`:''}</td><td>${pill(s[0],s[1])}${o.staff?`<span class="s">${esc(o.staff)}</span>`:''}</td><td><div class="acts">${W_OK()?ordActs(o):''}</div></td></tr>`}).join('')}</tbody></table></div>`;
 }
 function ordActs(o){
   const b=[];
   if(o.status==='pending')b.push(`<button class="btn sm btn-ink" data-act="ordSet" data-id="${esc(o.id)}" data-v="confirmed">Đã gọi xác nhận</button>`);
   if(o.status==='pending'||o.status==='confirmed')b.push(`<button class="btn sm btn-green" data-act="ordSet" data-id="${esc(o.id)}" data-v="done">Giao xong</button>`,`<button class="btn sm ghost" data-act="ordSet" data-id="${esc(o.id)}" data-v="cancelled">Hủy</button>`);
-  if(o.status==='done')b.push(`<button class="btn sm ghost" data-act="receipt" data-id="${esc(o.id)}">Hóa đơn</button>`);
+  if(o.status==='done')b.push(`<button class="btn sm ghost" data-act="receipt" data-id="${esc(o.id)}">Hóa đơn</button>`,`<button class="btn sm ghost" data-act="ordReturn" data-id="${esc(o.id)}">Trả hàng</button>`);
   return b.join('');
 }
 function aOrders(){
   const f=S.ordSt;let list=S.orders.slice().sort((a,b)=>b.createdAt-a.createdAt);
-  if(f==='open')list=list.filter(o=>o.status==='pending'||o.status==='confirmed');else if(f!=='all')list=list.filter(o=>o.status===f);
+  if(f==='open')list=list.filter(o=>o.status==='pending'||o.status==='confirmed');else if(f==='returned')list=list.filter(o=>(o.returns||[]).length);else if(f!=='all')list=list.filter(o=>o.status===f);
   return hd('Đơn hàng','Đơn cọc từ website và đơn bán tại quầy. Khách cọc online → gọi xác nhận → giao xong.')+
-  `<div class="toolbar"><div class="chips">${[['open','Cần xử lý'],['done','Hoàn tất'],['cancelled','Đã hủy'],['all','Tất cả']].map(([k,l])=>`<button class="chip ${f===k?'on':''}" data-act="set" data-k="ordSt" data-v="${k}">${l}</button>`).join('')}</div></div>${ordTable(list.slice(0,200),false)}`;
+  `<div class="toolbar"><div class="chips">${[['open','Cần xử lý'],['done','Hoàn tất'],['returned','Khách trả hàng'],['cancelled','Đã hủy'],['all','Tất cả']].map(([k,l])=>`<button class="chip ${f===k?'on':''}" data-act="set" data-k="ordSt" data-v="${k}">${l}</button>`).join('')}</div></div>${ordTable(list.slice(0,200),false)}`;
 }
 
 function aPos(){
@@ -678,7 +683,7 @@ function aPho(){
       return `<div class="ph-card"><div class="im">${src?`<img src="${esc(src)}" alt="">`:devSVG(mm.cat,c)}</div><div class="bd"><b style="font-size:14px">${esc(c||'(chưa ghi màu)')}</b><span class="muted" style="font-size:12px">${own?'Có ảnh riêng màu này':m[mk]?'Đang dùng ảnh chung':'Đang dùng hình minh họa'}</span><div class="acts">${btn(key,'Tải ảnh màu này',mm.model,c)}</div></div></div>`}).join('')}</div>`}).join('');
 }
 const ST_ROLES=['Bán hàng','Kỹ thuật','Quản lý','Khác'];
-function staffStats(name){const mk=mKey(now());const os=S.orders.filter(o=>o.status==='done'&&o.staff===name&&mKey(o.doneAt||o.createdAt)===mk);const rs=S.repairs.filter(r=>r.status==='returned'&&r.staff===name&&mKey(r.returnedAt||r.createdAt)===mk);
+function staffStats(name){const mk=mKey(now());const os=S.orders.filter(o=>SOLD(o)&&o.staff===name&&mKey(o.doneAt||o.createdAt)===mk);const rs=S.repairs.filter(r=>r.status==='returned'&&r.staff===name&&mKey(r.returnedAt||r.createdAt)===mk);
   return {orders:os.length,sales:os.reduce((s,o)=>s+(+o.total||0),0),repairs:rs.length,repRev:rs.reduce((s,r)=>s+(+r.quote||0),0)}}
 function aStaffProfile(){
   const list=S.staffList.slice().sort((a,b)=>(a.status==='off')-(b.status==='off')||String(a.name).localeCompare(b.name,'vi'));
@@ -781,7 +786,7 @@ function aRpt(){
   const by=finance();const ms=[];const d=new Date();d.setDate(1);for(let i=5;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);ms.push(mKey(x.getTime()))}
   const rows=ms.map(k=>({k,...(by[k]||{rev:0,cost:0,phone:0,acc:0,rep:0,repCost:0})}));const max=Math.max(1,...rows.map(r=>r.rev));
   const cur=rows[rows.length-1];
-  const top={};S.orders.filter(o=>o.status==='done'&&mKey(o.doneAt||o.createdAt)===cur.k).forEach(o=>(o.items||[]).forEach(i=>{if(i.kind==='phone'){const m=i.name.split(' ').slice(0,-2).join(' ')||i.name;top[m]=(top[m]||0)+1}}));
+  const top={};S.orders.filter(o=>SOLD(o)&&mKey(o.doneAt||o.createdAt)===cur.k).forEach(o=>(o.items||[]).forEach(i=>{if(i.kind==='phone'&&remQ(i)>0){const m=i.name.split(' ').slice(0,-2).join(' ')||i.name;top[m]=(top[m]||0)+1}}));
   const topL=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const inst=S.inv.filter(x=>x.status==='instock');
   return hd('Báo cáo','Chỉ chủ shop xem được. Doanh thu tính theo ngày giao xong, sửa chữa theo ngày trả máy.')+
@@ -1000,6 +1005,14 @@ const ACT={
     if(v==='cancelled'){return openModal(`<h2>Hủy đơn ${esc(o.code)}?</h2><p class="muted">Máy đang giữ cọc sẽ trở lại kho và hiện lại trên website. Nhớ hoàn cọc cho khách nếu có.</p><div class="foot"><button class="btn ghost" data-act="close">Không</button><button class="btn btn-red" data-act="ordCancel" data-id="${esc(o.id)}">Hủy đơn</button></div>`)}
     if(v==='confirmed')return W(()=>col('orders').doc(o.id).update({status:'confirmed',staff:S.staff,confirmedAt:now()}),'Đã xác nhận đơn');
     if(v==='done'){const ok=await W(async()=>{await col('orders').doc(o.id).update({status:'done',doneAt:now(),staff:S.staff});await applyDone(o.items||[],o.code)},'Đã hoàn tất đơn, máy đã trừ kho');if(ok)ACT.receipt({id:o.id})}},
+  ordReturn:d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;const its=(o.items||[]).map((it,i)=>({it,i,rq:remQ(it)})).filter(x=>x.rq>0);
+    if(!its.length)return toast('Đơn này đã trả hết hàng');
+    openModal(`<h2>Khách trả hàng · ${esc(o.code)}</h2><p class="muted" style="margin-top:0">${esc(o.customerName||'Khách lẻ')}${o.phone?' · '+esc(o.phone):''} · Tổng đơn ${money(o.total)}${o.refundTotal?' · đã hoàn '+money(o.refundTotal):''}</p>
+    <form data-form="ordReturn"><input type="hidden" name="id" value="${esc(o.id)}"><div class="ret-list">${its.map(({it,i,rq})=>`<div class="ret-it"><label class="ret-chk"><input type="checkbox" name="r${i}" checked><span><b>${esc(it.name)}</b><small class="muted">${it.imei?'Serial/IMEI '+esc(it.imei)+' · ':''}${money(it.price)}${rq>1?' · còn '+rq:''}</small></span></label>
+      <div class="row" style="gap:10px;flex-wrap:wrap;margin:6px 0 0 28px">${rq>1?`<label style="display:flex;align-items:center;gap:6px;font-weight:500">SL trả <input name="q${i}" type="number" min="1" max="${rq}" value="${rq}" style="width:70px"></label>`:''}${it.kind==='svc'?'':`<label style="display:flex;align-items:center;gap:6px;font-weight:500"><input type="checkbox" name="k${i}" checked style="width:auto"> ${it.kind==='phone'?'Đưa máy về kho (hiện lại trên web)':'Cộng lại vào kho phụ kiện'}</label>`}</div></div>`).join('')}</div>
+    <div class="fgrid" style="margin-top:12px"><div><label>Số tiền hoàn cho khách</label><input name="refund" inputmode="numeric" placeholder="Để trống = đúng giá các món trả"></div><div><label>Lý do</label><input name="reason" placeholder="VD: lỗi màn, khách đổi ý…"></div></div>
+    <p class="muted" style="font-size:12.5px;margin:10px 0 0">Doanh thu sẽ trừ số tiền hoàn vào ngày trả. Máy về kho giữ giá bán cũ, sửa lại trong Kho máy nếu cần.</p>
+    <div class="foot"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">Xác nhận trả hàng</button></div></form>`)},
   ordCancel:async d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;closeModal();
     await W(async()=>{await col('orders').doc(o.id).update({status:'cancelled',staff:S.staff});for(const it of (o.items||[])){if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u&&u.status==='reserved'&&u.orderCode===o.code)await safeUpd('inventory',u.id,{status:'instock',orderCode:''})}}},'Đã hủy đơn')},
   receipt:d=>{const o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;S.rcptO=o;
@@ -1079,6 +1092,15 @@ async function applyDone(items,code){for(const it of items){if(it.kind==='svc')c
 const num=v=>{const n=+String(v??'').replace(/[^\d]/g,'');return isNaN(n)?0:n};
 function demoDone_unused(t,b){openModal(`<h2>${t}</h2><p>${b}</p><div class="banner" style="margin-top:12px">Bản xem trước: đơn này <b>không được lưu</b>. Khi chạy bằng tên miền riêng, đơn sẽ vào mục Đơn hàng / Sửa chữa và nhân viên nhận thông báo.</div><div class="foot"><button class="btn btn-ink" data-act="close">Đóng</button></div>`)}
 const FORM={
+  ordReturn:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;const items=(o.items||[]).map(it=>({...it}));const ri=[];let sum=0;
+    items.forEach((it,i)=>{if(!v['r'+i])return;const rq=remQ(it);if(rq<=0)return;const q=Math.min(rq,Math.max(1,Math.round(+v['q'+i]||rq)));ri.push({i,qty:q,restock:it.kind!=='svc'&&!!v['k'+i]});it.retQty=retQ(it)+q;sum+=(+it.price||0)*q});
+    if(!ri.length)return toast('Chọn ít nhất một món khách trả');
+    const refund=String(v.refund||'').trim()?num(v.refund):sum;
+    const rt={at:now(),staff:S.staff||'',items:ri,refund,reason:String(v.reason||'').trim().slice(0,200)};
+    const all=items.every(it=>remQ(it)<=0);
+    const ok=await W(async()=>{await col('orders').doc(o.id).update({items,returns:[...(o.returns||[]),rt],refundTotal:(+o.refundTotal||0)+refund,status:all?'returned':'done'});
+      for(const x of ri){if(!x.restock)continue;const it=items[x.i];if(it.kind==='phone')await safeUpd('inventory',it.refId,{status:'instock',soldAt:null,orderCode:null,returnedAt:now()});else{const a=S.acc.find(y=>y.id===it.refId);if(a)await safeUpd('accessories',a.id,{qty:(+a.qty||0)+x.qty})}}},'Đã ghi nhận trả hàng · hoàn '+money(refund));
+    if(ok)closeModal()},
   bh:async v=>{S.bhQ=v.q||'';if(S.auth.staff){render();return}const q=S.bhQ.trim();if(!q){S.bhRes=null;render();return}S.bhRes={loading:true};render();try{S.bhRes=await callFn('warrantyLookup',{q})}catch(e){S.bhRes={error:(e&&e.message)||'Chưa tra cứu được, bạn thử lại sau nhé.'}}render()},
   deposit:async v=>{const st=SET();let r;try{r=await callFn('placeDeposit',{unitId:v.id,name:v.name.trim(),phone:v.phone,note:v.note||''})}catch(e){return fnErr(e)}
     openModal(`<h2>Đã nhận đơn cọc 🎉</h2><p>Mã đơn: <b>${esc(r.code)}</b></p><p class="muted">Nhân viên ${esc(st.name)} sẽ gọi số <b>${esc(v.phone)}</b> để xác nhận trong ít phút (giờ mở cửa ${esc(st.hours)}).</p><div class="box">Chuyển khoản cọc <b>${money(r.deposit)}</b> tới: <b>${esc(st.bank)}</b><br>Nội dung: <b>COC ${esc(r.code)}</b></div><div class="foot"><button class="btn btn-ink" data-act="close">Đóng</button></div>`)},
