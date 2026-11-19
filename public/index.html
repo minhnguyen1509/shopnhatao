@@ -1105,9 +1105,10 @@ const ACT={
     <h3 style="margin:16px 0 6px">Sản phẩm</h3><div class="ret-list" style="margin-top:0">${its.map((it,i)=>`<div class="ret-it"><div class="fgrid" style="margin:0"><div class="full"><label>Tên sản phẩm${it.gift?' (quà tặng)':''}${retQ(it)?` · đã trả ${retQ(it)}`:''}</label><input name="n${i}" value="${esc(it.name||'')}"></div>
       ${it.kind==='svc'?'':`<div><label>Serial/IMEI</label><input name="s${i}" value="${esc(it.imei||'')}"></div><div><label>Tình trạng</label><input name="c${i}" value="${esc(it.cond||'')}" placeholder="${esc(itemCond(it))}"></div>`}
       <div><label>Bảo hành (tháng)</label><input name="w${i}" inputmode="numeric" value="${+it.warrantyMonths||0}"></div><div><label>Đơn giá${(+it.qty||1)>1?' (×'+it.qty+')':''}</label><input name="p${i}" inputmode="numeric" value="${+it.price||0}"></div></div></div>`).join('')}</div>
-    ${isOwner()?(()=>{const c=(S.costMap||{})['ord-'+o.id]||{};const ex=(c.extra||[]).slice();while(ex.length<4)ex.push({label:'',amount:''});const P=ordProfit(o);
+    ${isOwner()?(()=>{const c=(S.costMap||{})['ord-'+o.id]||{};const all=(c.extra||[]).slice();const si=all.findIndex(x=>x.kind==='staff'||x.label==='Nhân viên');const stf=si>=0?all.splice(si,1)[0]:{amount:''};const ex=all;while(ex.length<3)ex.push({label:'',amount:''});const P=ordProfit(o);
       return `<div class="own-box"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:6px"><b>Chi phí của đơn</b><span class="muted" style="font-size:12px">🔒 Chỉ chủ shop thấy</span></div>
-      <div class="muted" style="font-size:12.5px;margin:2px 0 8px">Ví dụ: phí ship, hoa hồng nhân viên, quà tặng thêm, phí quẹt thẻ… Tính vào lãi của shop.</div>
+      <div class="muted" style="font-size:12.5px;margin:2px 0 8px">Dòng "Nhân viên" là tiền trả cho nhân viên bán đơn này (bỏ trống = 0đ). Các dòng dưới: phí ship, quà tặng thêm, phí quẹt thẻ… Tất cả trừ vào lãi của shop.</div>
+      <div class="row" style="gap:8px;margin-top:6px"><input value="Nhân viên" readonly tabindex="-1" style="flex:1.4;background:var(--bg2);font-weight:600"><input name="xs" inputmode="numeric" value="${+stf.amount||''}" placeholder="Để trống = 0đ" style="flex:1"></div>
       ${ex.map((x,i)=>`<div class="row" style="gap:8px;margin-top:6px"><input name="xl${i}" value="${esc(x.label||'')}" placeholder="Khoản chi" style="flex:1.4"><input name="xa${i}" inputmode="numeric" value="${+x.amount||''}" placeholder="Số tiền" style="flex:1"></div>`).join('')}
       <div class="own-sum"><span>Doanh thu <b>${money(P.rev)}</b></span><span>Giá vốn <b>${money(P.cogs)}</b></span><span>Chi phí <b>${money(P.ex)}</b></span><span>Lãi <b style="color:${P.profit>=0?'var(--green)':'var(--red)'}">${money(P.profit)}</b></span></div>
       <div class="muted" style="font-size:11.5px;margin-top:4px">Số lãi tính theo dữ liệu đang lưu, lưu xong mở lại để xem số mới.</div></div>`})():''}
@@ -1236,7 +1237,7 @@ const FORM={
     if(v.deposit!=null)d.deposit=num(v.deposit);
     if(v.doneDate){const [y,m,dd]=v.doneDate.split('-').map(Number);const old=new Date((o.doneAt||now())+7*3600e3);const t=Date.UTC(y,m-1,dd,old.getUTCHours(),old.getUTCMinutes())-7*3600e3;if(t&&Math.abs(t-(o.doneAt||0))>60000)d.doneAt=t}
     if(o.paid!=null&&+o.paid===+o.total)d.paid=total;
-    let extra=null;if(isOwner()){extra=[];for(let i=0;i<8;i++){const l=String(v['xl'+i]||'').trim(),a=num(v['xa'+i]);if(l||a)extra.push({label:l||'Chi phí',amount:a})}}
+    let extra=null;if(isOwner()){extra=[{label:'Nhân viên',kind:'staff',amount:num(v.xs)}];for(let i=0;i<8;i++){const l=String(v['xl'+i]||'').trim(),a=num(v['xa'+i]);if(l||a)extra.push({label:l||'Chi phí',amount:a})}}
     const ok=await W(async()=>{await col('orders').doc(o.id).update(d);if(extra)await DB.doc('costs/ord-'+o.id).set({extra,orderCode:o.code,updatedAt:now()},{merge:true})},'Đã lưu đơn '+o.code);if(ok)closeModal()},
   ordReturn:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;const items=(o.items||[]).map(it=>({...it}));const ri=[];let sum=0;
     items.forEach((it,i)=>{if(!v['r'+i])return;const rq=remQ(it);if(rq<=0)return;const q=Math.min(rq,Math.max(1,Math.round(+v['q'+i]||rq)));ri.push({i,qty:q,restock:it.kind!=='svc'&&!!v['k'+i]});it.retQty=retQ(it)+q;sum+=(+it.price||0)*q});
