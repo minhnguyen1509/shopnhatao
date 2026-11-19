@@ -401,6 +401,8 @@ const SOLD=o=>o.status==='done'||o.status==='returned';
 const retQ=it=>+it.retQty||0,remQ=it=>Math.max(0,(+it.qty||1)-retQ(it));
 function unitCost(it){const cm=S.costMap||{};return +it.cost||(it.kind==='phone'?+((cm['inv-'+it.refId]||{}).costPrice||0):+((cm['acc-'+it.refId]||{}).cost||0))}
 function discAmt(v,sub){const s=String(v||'').trim();if(!s)return 0;if(/%\s*$/.test(s)){const pc=Math.min(100,Math.max(0,parseFloat(s.replace(',','.'))||0));return Math.round(sub*pc/100/1000)*1000}return Math.min(sub,num(s))}
+const fold=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/Đ/g,'d').toLowerCase().replace(/\s+/g,' ').trim();
+function qm(hay,q){const t=fold(q);if(!t)return true;const hh=fold(hay),hc=hh.replace(/[\s\/\-.]/g,'');let ws=t.split(' ').map(w=>({pm:'promax',prm:'promax',pr:'pro',ip:'iphone'})[w]||w.replace(/(\d)(pm|prm)$/,'$1promax').replace(/^ip(\d)/,'$1'));if(ws.length>1)ws=ws.filter(w=>w!=='iphone');return ws.every(w=>hh.includes(w)||hc.includes(w.replace(/[\/\-.]/g,'')))}
 function customers(){
   const m={};const add=(phone,name,t)=>{if(!phone)return null;const c=m[phone]=m[phone]||{phone,name:'',orders:0,spent:0,repairs:0,last:0};if(name&&name!=='Khách lẻ')c.name=name;c.last=Math.max(c.last,t||0);return c};
   S.orders.filter(SOLD).forEach(o=>{const c=add(o.phone,o.customerName,o.doneAt||o.createdAt);if(c){c.orders++;c.spent+=(+o.total||0)-(+o.refundTotal||0)}});
@@ -487,7 +489,7 @@ function shopGrid(){
   let items=[];const f=S.shopFilter,q=S.q.toLowerCase().trim();
   if(f!=='acc')phoneGroups().filter(g=>(f==='all'||g.cat===f)&&(S.condF==='all'||g.cond===S.condF)).forEach(g=>items.push({t:'g',g,price:g.min,name:g.model}));
   if((f==='all'&&S.condF!=='used')||f==='acc')S.acc.filter(a=>(+a.qty||0)>0&&(+a.price||0)>0).forEach(a=>items.push({t:'a',a,price:+a.price||0,name:a.name+' '+(a.category||'')}));
-  if(q)items=items.filter(i=>i.name.toLowerCase().includes(q));
+  if(q)items=items.filter(i=>qm(i.name,q));
   if(S.sort==='asc')items.sort((a,b)=>a.price-b.price);else if(S.sort==='desc')items.sort((a,b)=>b.price-a.price);else items.sort((a,b)=>(a.t==='a')-(b.t==='a')||b.price-a.price);
   if(!items.length)return `<div class="empty" style="grid-column:1/-1">${Object.keys(KEY).every(k=>S.loaded[k])?'Chưa có sản phẩm phù hợp. Inbox shop để được báo hàng sắp về nhé!':'Đang tải sản phẩm…'}</div>`;
   return items.map(i=>{
@@ -497,7 +499,7 @@ function shopGrid(){
 }
 function svcTable(admin){
   const q=(admin?'':S.svcQ).toLowerCase().trim();
-  const rows=S.svc.filter(s=>!q||(s.model+' '+s.name).toLowerCase().includes(q)).sort((a,b)=>String(a.category).localeCompare(b.category)||String(a.model).localeCompare(b.model,'vi',{numeric:true}));
+  const rows=S.svc.filter(s=>!q||qm(s.model+' '+s.name+' '+(s.category||''),q)).sort((a,b)=>String(a.category).localeCompare(b.category)||String(a.model).localeCompare(b.model,'vi',{numeric:true}));
   if(!rows.length)return `<div class="empty">${S.svc.length?'Không có dịch vụ khớp. Inbox shop để báo giá nhé!':'Bảng giá đang cập nhật.'}</div>`;
   return `<div class="tbl-wrap"><table><thead><tr><th>Dòng máy</th><th>Dịch vụ</th><th>Thời gian</th><th class="num">Giá</th>${admin&&S.canWrite?'<th></th>':''}</tr></thead><tbody>${rows.map(s=>`<tr><td><b>${esc(s.model)}</b></td><td>${esc(s.name)}<span class="s">${esc(s.category||'')}</span></td><td>${esc(s.time||'')}</td><td class="num"><b>${+s.price?money(s.price):'Báo giá'}</b></td>${admin&&S.canWrite?`<td><div class="acts"><button class="btn sm" data-act="svcForm" data-id="${esc(s.id)}">Sửa</button><button class="btn sm ghost" data-act="del" data-col="services" data-id="${esc(s.id)}" data-name="${esc(s.model+' – '+s.name)}">Xóa</button></div></td>`:''}</tr>`).join('')}</tbody></table></div>`;
 }
@@ -595,8 +597,8 @@ function aPos(){
   const inCart=new Set(S.cart.map(c=>c.refId));
   let res=[];
   if(q){
-    S.inv.filter(x=>x.status==='instock'&&!inCart.has(x.id)&&(`${x.model} ${x.storage} ${x.color} ${x.imei}`).toLowerCase().includes(q)).slice(0,12).forEach(x=>res.push(`<div class="res-item"><div><b>${esc(x.model)} ${esc(x.storage)} · ${esc(x.color)}</b><span class="s muted" style="display:block;font-size:12px">${COND[x.condition]||''}${x.condition!=='new'&&x.battery?' · Pin '+x.battery+'%':''} · IMEI ${esc(x.imei||'—')}</span></div><div class="row"><b>${money(x.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="phone" data-id="${esc(x.id)}">Thêm</button></div></div>`));
-    S.acc.filter(a=>(+a.qty||0)>0&&(`${a.name} ${a.category}`).toLowerCase().includes(q)).slice(0,10).forEach(a=>res.push(`<div class="res-item"><div><b>${esc(a.name)}</b><span class="muted" style="display:block;font-size:12px">${esc(a.category||'')} · còn ${+a.qty}</span></div><div class="row"><b>${money(a.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="acc" data-id="${esc(a.id)}">Thêm</button></div></div>`));
+    S.inv.filter(x=>x.status==='instock'&&!inCart.has(x.id)&&qm(`${x.model} ${x.storage} ${x.color} ${x.imei} ${x.origin||''} ${COND[x.condition]||''}`,q)).slice(0,15).forEach(x=>res.push(`<div class="res-item"><div><b>${esc(x.model)} ${esc(x.storage)} · ${esc(x.color)}</b><span class="s muted" style="display:block;font-size:12px">${COND[x.condition]||''}${x.condition!=='new'&&x.battery?' · Pin '+x.battery+'%':''} · IMEI ${esc(x.imei||'—')}</span></div><div class="row"><b>${money(x.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="phone" data-id="${esc(x.id)}">Thêm</button></div></div>`));
+    S.acc.filter(a=>(+a.qty||0)>0&&qm(`${a.name} ${a.category}`,q)).slice(0,25).forEach(a=>res.push(`<div class="res-item"><div><b>${esc(a.name)}</b><span class="muted" style="display:block;font-size:12px">${esc(a.category||'')} · còn ${+a.qty}</span></div><div class="row"><b>${money(a.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="acc" data-id="${esc(a.id)}">Thêm</button></div></div>`));
   }
   const sub=S.cart.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const disc=discAmt(S.posCust.disc,sub);const total=Math.max(0,sub-disc);
   return hd('Bán tại quầy','Quét hoặc gõ IMEI, tên máy, tên phụ kiện để thêm vào đơn. Bán xong máy tự trừ khỏi kho và bắt đầu tính bảo hành.')+
@@ -630,7 +632,7 @@ function aInv(){
   const opts=(k,vals,lbl)=>`<select id="if-${k}" data-chg="invF" data-k="${k}" style="max-width:170px"><option value="">${lbl}</option>${vals.map(([v,l])=>`<option value="${esc(v)}" ${F[k]===v?'selected':''}>${esc(l)}</option>`).join('')}</select>`;
   const uniq=fn=>[...new Set(base.map(fn).filter(Boolean))].sort((a,b)=>String(a).localeCompare(b,'vi',{numeric:true}));
   const fActive=Object.values(F).some(Boolean);
-  if(q)list=list.filter(x=>(`${x.model} ${x.storage} ${x.color} ${x.imei} ${x.note} ${x.origin||''} ${NET[netOf(x)]||''} ${x.source||''}`).toLowerCase().includes(q));
+  if(q)list=list.filter(x=>qm(`${x.model} ${x.storage} ${x.color} ${x.imei} ${x.note} ${x.origin||''} ${NET[netOf(x)]||''} ${x.source||''}`,q));
   const cfgKey=x=>[x.model,x.storage||'',x.color||'',x.condition,x.origin||'',netOf(x),x.price,x.status].join('|');
   const cnt={};list.forEach(x=>{const k=cfgKey(x);cnt[k]=(cnt[k]||0)+1});
   const SV={name:x=>String(x.model)+' '+(x.storage||''),cond:x=>({new:0,likenew:1,used:2}[x.condition]??3)*1000-(+x.battery||0),imei:x=>String(x.imei||''),cost:x=>+x.costPrice||0,price:x=>+x.price||0,qty:x=>cnt[cfgKey(x)]||1,date:x=>+x.createdAt||0,status:x=>({instock:0,reserved:1,sold:2}[x.status]??3)};
@@ -648,7 +650,7 @@ function aInv(){
 }
 
 function aAcc(){
-  const q=S.accQ.toLowerCase().trim();let list=S.acc.slice();if(q)list=list.filter(a=>(`${a.name} ${a.category}`).toLowerCase().includes(q));
+  const q=S.accQ.toLowerCase().trim();let list=S.acc.slice();if(q)list=list.filter(a=>qm(`${a.name} ${a.category}`,q));
   list.sort((a,b)=>String(a.category).localeCompare(b.category)||String(a.name).localeCompare(b.name));
   return hd('Phụ kiện','Tồn kho theo số lượng. Hết hàng sẽ tự ẩn khỏi website.',W_OK()?`<button class="btn btn-red" data-act="accForm">+ Thêm phụ kiện</button>`:'')+
   `<div class="toolbar"><input id="q-acc" data-live="accQ" placeholder="Tìm phụ kiện…" value="${esc(S.accQ)}"></div>`+
@@ -785,7 +787,7 @@ function staffFormHTML(s){s=s||{status:'on',role:'Bán hàng'};const p=s.uid&&S.
   <div><label>Quyền</label><select name="perm" ${s.id===S.auth.uid?'disabled':''}><option value="staff" ${s.perm!=='owner'?'selected':''}>Nhân viên (không thấy giá nhập, báo cáo, cài đặt)</option><option value="owner" ${s.perm==='owner'?'selected':''}>Chủ shop (toàn quyền)</option></select></div>
   </div><div class="foot"><button type="button" class="btn ghost" data-act="close">Hủy</button><button class="btn btn-red">Lưu</button></div></form>`}
 function aCus(){
-  const q=S.cusQ.toLowerCase().trim();let list=customers();if(q)list=list.filter(c=>(c.name+' '+c.phone).toLowerCase().includes(q));
+  const q=S.cusQ.toLowerCase().trim();let list=customers();if(q)list=list.filter(c=>qm(c.name+' '+c.phone,q));
   return hd('Khách hàng','Tự tổng hợp từ đơn hàng và phiếu sửa, theo số điện thoại.')+
   `<div class="toolbar"><input id="q-cus" data-live="cusQ" placeholder="Tên hoặc số điện thoại…" value="${esc(S.cusQ)}"></div>`+
   (list.length?`<div class="tbl-wrap"><table><thead><tr><th>Khách</th><th class="num">Đơn mua</th><th class="num">Lần sửa</th><th class="num">Tổng chi tiêu</th><th>Lần gần nhất</th><th></th></tr></thead><tbody>${list.slice(0,300).map(c=>`<tr><td><b>${esc(c.name||'(chưa có tên)')}</b><span class="s">${esc(c.phone)}</span></td><td class="num">${c.orders}</td><td class="num">${c.repairs}</td><td class="num"><b>${money(c.spent)}</b></td><td>${fmtD(c.last)}</td><td><button class="btn sm" data-act="cusView" data-phone="${esc(c.phone)}">Lịch sử</button></td></tr>`).join('')}</tbody></table></div>`:`<div class="empty">Chưa có khách hàng.</div>`);
@@ -1252,7 +1254,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.addEventListener('submit',async e=>{const f=e.target.closest('form[data-form]');if(!f)return;e.preventDefault();const btn=f.querySelector('button:not([type=button])');if(btn)btn.disabled=true;try{await FORM[f.dataset.form](Object.fromEntries(new FormData(f)),f)}finally{if(btn&&document.contains(btn))btn.disabled=false}});
-document.addEventListener('input',e=>{const el=e.target;if(false){const q=el.value;U.search(q).then(hits=>{const box=$('#st-res');if(!box||$('#st-q').value!==q)return;box.innerHTML='';hits.forEach(hh=>{const b=document.createElement('button');b.type='button';b.className='btn sm';b.style.justifyContent='flex-start';b.dataset.act='pickAcc';b.dataset.id=hh.id;b.dataset.name=hh.name;b.textContent=hh.name+(hh.email?' · '+hh.email:'');box.appendChild(b)});if(!hits.length&&q)box.innerHTML='<span class="muted" style="font-size:13px">Không tìm thấy. Nhân viên đã được mời qua Share chưa?</span>'})}else if(el.dataset.live){S[el.dataset.live]=el.value;schedule()}else if(el.dataset.bind){const [a,b]=el.dataset.bind.split('.');S[a][b]=el.value}});
+document.addEventListener('input',e=>{const el=e.target;if(false){const q=el.value;U.search(q).then(hits=>{const box=$('#st-res');if(!box||$('#st-q').value!==q)return;box.innerHTML='';hits.forEach(hh=>{const b=document.createElement('button');b.type='button';b.className='btn sm';b.style.justifyContent='flex-start';b.dataset.act='pickAcc';b.dataset.id=hh.id;b.dataset.name=hh.name;b.textContent=hh.name+(hh.email?' · '+hh.email:'');box.appendChild(b)});if(!hits.length&&q)box.innerHTML='<span class="muted" style="font-size:13px">Không tìm thấy. Nhân viên đã được mời qua Share chưa?</span>'})}else if(el.dataset.live){S[el.dataset.live]=el.value;if(e.isComposing)return;liveRender()}else if(el.dataset.bind){const [a,b]=el.dataset.bind.split('.');S[a][b]=el.value}});
+let _lt;function liveRender(){clearTimeout(_lt);_lt=setTimeout(schedule,160)}
+document.addEventListener('compositionend',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.live){S[el.dataset.live]=el.value;liveRender()}});
 document.addEventListener('change',e=>{const el=e.target;if(el.dataset.chg&&CHG[el.dataset.chg])CHG[el.dataset.chg](el)});
 function renderFormImgs(){const el=$('#f-imgs');if(!el)return;const a=S.formImgs||[];
   el.innerHTML=a.length?`<div class="ph-edit" style="margin-top:0">${a.map((id,i)=>`<div style="${i?'':'outline:2px solid var(--green)'}"><img src="${esc(imgUrl(id))}" alt="" data-act="fimgCover" data-i="${i}" style="cursor:pointer" title="Đặt làm ảnh chính"><div class="acts">${i?`<button type="button" class="btn sm" data-act="fimgCover" data-i="${i}">Làm ảnh chính</button>`:pill('Ảnh chính','green')}<button type="button" class="btn sm ghost" data-act="fimgDel" data-i="${i}">Xóa</button></div></div>`).join('')}</div>`:'<div class="muted" style="font-size:13px">Chưa có ảnh.</div>'}
