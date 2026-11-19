@@ -391,3 +391,29 @@ exports.exportBackup = onRequest({ cors: false, timeoutSeconds: 120, memory: '51
     res.set('Cache-Control', 'no-store').json(out);
   } catch (e) { console.error(e); res.status(500).json({ error: 'Lỗi máy chủ' }); }
 });
+
+/* ---------- sao lưu file lên Cloud Storage mỗi đêm + tải về Excel cho chủ shop ---------- */
+const { onSchedule } = require('firebase-functions/v2/scheduler');
+const { getStorage } = require('firebase-admin/storage');
+const BK_COLS = ['inventory', 'accessories', 'orders', 'repairs', 'services', 'staff', 'shifts', 'payroll', 'costs', 'settings', 'photos'];
+async function dumpAll() {
+  const out = { generatedAt: now(), collections: {} };
+  for (const n of BK_COLS) { const s = await db.collection(n).get(); out.collections[n] = s.docs.map((d) => ({ id: d.id, ...d.data() })); }
+  return out;
+}
+exports.nightlyBackup = onSchedule({ schedule: '30 2 * * *', timeZone: 'Asia/Ho_Chi_Minh', memory: '512MiB', timeoutSeconds: 300 }, async () => {
+  const data = await dumpAll();
+  const day = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const bucket = getStorage().bucket();
+  await bucket.file(`backups/ShopNhaTao_${day}.json`).save(JSON.stringify(data), { contentType: 'application/json', resumable: false });
+  const [files] = await bucket.getFiles({ prefix: 'backups/ShopNhaTao_' });
+  files.sort((a, b) => b.name.localeCompare(a.name)).slice(7).forEach((f) => f.delete().catch(() => {}));
+  await db.doc('private/backup').set({ lastFileAt: now(), lastFile: `backups/ShopNhaTao_${day}.json` }, { merge: true });
+});
+exports.downloadBackup = onCall({ memory: '512MiB', timeoutSeconds: 120 }, async (req) => {
+  await requireOwner(req);
+  const data = await dumpAll();
+  const snap = await db.doc('private/backup').get();
+  data.lastFileAt = snap.exists ? snap.data().lastFileAt || null : null;
+  return data;
+});
