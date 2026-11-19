@@ -225,6 +225,42 @@ pre.rcpt{background:#fff;border:1px dashed var(--line);border-radius:10px;paddin
   .trust{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:20px}
   .hero .row .btn{flex:1}
 }
+#print-area{display:none}
+@media print{
+  @page{size:A4;margin:14mm 14mm 12mm}
+  html,body{background:#fff!important;margin:0!important}
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important;font-family:"Times New Roman",Times,serif;color:#000;font-size:13pt;line-height:1.35}
+  .inv-page{page-break-after:always;break-after:page}
+  .inv-page:last-child{page-break-after:auto;break-after:auto}
+  .inv-head{display:flex;align-items:center;gap:18px}
+  .inv-head img{width:28mm;height:28mm;object-fit:cover}
+  .inv-shop{flex:1;text-align:center;font-size:12.5pt}
+  .inv-shop .n{font-weight:700;font-size:15pt}
+  .inv-shop .sub{font-weight:700;font-size:14pt}
+  .inv-page h1{text-align:center;font-size:20pt;margin:9mm 0 1mm;letter-spacing:.5px}
+  .inv-code{text-align:center;font-size:11pt;margin-bottom:6mm}
+  .inv-cus div{margin:1mm 0}
+  .inv-t{width:100%;border-collapse:collapse;margin-top:5mm;font-size:12pt}
+  .inv-t{table-layout:fixed;box-sizing:border-box;width:99%!important;margin-right:auto}
+  .inv-t th,.inv-t td{border:1px solid #000!important;padding:1.6mm 1.8mm;vertical-align:middle;background:none!important;color:#000!important}
+  .inv-t th{font-weight:700;text-align:center;text-transform:none!important;letter-spacing:0!important;font-size:12pt!important;white-space:normal}
+  .inv-t tr.blank td{height:6mm;padding:0}
+  .inv-t .c{text-align:center}.inv-t .r{text-align:right}.inv-t .b{font-weight:700}.inv-t .sm{font-size:10.5pt}
+  .inv-t tfoot td{border-top:1px solid #000}
+  .inv-sign{display:flex;justify-content:space-around;text-align:center;margin-top:12mm}
+  .inv-sign>div{display:flex;flex-direction:column;align-items:center;min-width:60mm}
+  .inv-sign b{font-size:13pt}.inv-sign i{font-size:11.5pt}
+  .inv-sign .nm{margin-top:20mm}
+  .inv-foot{text-align:center;margin-top:8mm;font-size:12pt}
+  .inv-policy{font-size:12pt;line-height:1.4}
+  .inv-policy h2{text-align:center;font-size:16pt;margin:4mm 0 1mm}
+  .inv-policy h2+p{text-align:center;margin-top:0}
+  .inv-policy h4{margin:3mm 0 1mm;font-size:12.5pt;font-weight:400}
+  .inv-policy ul{margin:0 0 1mm 5mm;padding-left:4mm}
+  .inv-policy li{margin:.6mm 0}
+  .inv-policy p{margin:1mm 0}
+}
 </style>
 </head>
 <body class="pub">
@@ -232,6 +268,7 @@ pre.rcpt{background:#fff;border:1px dashed var(--line);border-radius:10px;paddin
 <div id="app"></div>
 <div id="modal" class="modal hidden"><div class="modal-card"><button class="x" data-act="close" aria-label="Đóng">×</button><div id="modal-body"></div></div></div>
 <div id="toast"></div>
+<div id="print-area"></div>
 <input type="file" id="file-pick" accept="image/*" hidden>
 <datalist id="dl-models"></datalist>
 <datalist id="dl-colors"></datalist>
@@ -262,14 +299,14 @@ const inferCat=m=>{const s=' '+String(m||'').toLowerCase()+' ';if(s.includes('ip
 const catOf=x=>CATS.includes(x&&x.cat)?x.cat:inferCat(x&&x.model);
 const COLORS={'băng thanh':'#c9d9e3','đỏ burgundy':'#6e1f2a','trời đêm':'#1f2433','trắng ánh sao':'#ece9e2','đen':'#2b2b2e','trắng':'#f1f0ec','bạc':'#dcdcdc','xám':'#7d7f83','titan tự nhiên':'#b9b2a6','titan sa mạc':'#c9a77f','titan xanh':'#4b5868','titan đen':'#3a3a3c','titan trắng':'#e5e3de','xanh':'#9fb7cf','xanh dương':'#3b5b8a','xanh lá':'#a9c7a8','xanh mòng két':'#6aa6a8','hồng':'#f2c9cf','vàng':'#f1dd9b','tím':'#c9b8dc','đỏ':'#c7313a','cam':'#e9803a','cam vũ trụ':'#e07a36','xanh đậm':'#2f3e55','xanh lam':'#8fb0d6','tím oải hương':'#cbbbe0'};
 const colorHex=c=>COLORS[String(c||'').toLowerCase().trim()]||'#c9c9cf';
-const DEF={name:'Shop Nhà Táo',tagline:'Thương hiệu uy tín, đồng hành cùng tín đồ nhà Táo từ năm 2020. iPhone, iPad, MacBook, AirPods, Apple Watch mới & cũ cùng phụ kiện chính hãng; thay pin, thay màn hình lấy ngay.',phone:'09xx xxx xxx',zalo:'',messenger:'https://m.me/ShopNhaTaoo',facebook:'https://www.facebook.com/ShopNhaTaoo',address:'(Cập nhật địa chỉ trong Cài đặt)',hours:'8:30 – 21:30 hàng ngày',bank:'(Ngân hàng) · STK (số tài khoản) · Chủ TK (tên)',deposit:500000,staff:['Chủ shop','Nhân viên 1','Nhân viên 2','Nhân viên 3']};
+const DEF={subtitle:'IPHONE, IPAD, MACBOOK, AIRPODS, APPLE WATCH',email:'shopnhataoo@gmail.com',packages:"Gói Bảo hành mở rộng - Đồng | 300000 | 3\nGói Bảo hành mở rộng - Bạc | 600000 | 6\nGói Bảo hành mở rộng - Vàng | 1200000 | 12\nGói Bảo hành mở rộng - Kim Cương (1 đổi 1) | 1500000 | 12",warrantyPolicy:"## Gói bảo hành tiêu chuẩn\n(áp dụng cho tất cả các gói bảo hành)\n### I. Chế độ bảo hành\n- Thời hạn bảo hành: tính từ ngày mua hàng.\n- Trong 7 ngày đầu sử dụng, khách hàng sẽ được đổi máy cùng đời, cùng tình trạng trong trường hợp máy đã mua bị lỗi phần cứng hoặc cảm ứng (với điều kiện máy không bị trầy xước, không được dán decal).\n- Bảo hành phụ kiện 1 tháng; bảo hành phần cứng bao gồm: nguồn, màn hình, loa, camera, mic 1 tuần.\n- Hỗ trợ cài đặt phần mềm 1 năm.\n- Với máy mới: nếu sau 1 tuần sử dụng mà máy phát sinh lỗi từ NSX, khách hàng sẽ được hỗ trợ đổi trả máy mới cùng đời, cùng tình trạng trong thời gian 2 tuần đến 1 tháng với phí 0 đồng. Trong trường hợp khách muốn đổi máy mới ngay tại thời điểm có lỗi, khách hàng sẽ chịu hoàn toàn chi phí.\n### II. Chế độ bảo hành sẽ không được áp dụng cho các trường hợp sau:\n- Chỉ bảo hành khi còn nguyên trạng ban đầu. Không bảo hành những máy bị va đập, bị rơi vỡ, sứt mẻ, trầy xước, cong vênh, thay đổi màu sắc, ẩm ướt, hỏng do nhiệt độ cao, máy mất IMEI, máy không lên nguồn, hoặc có sự can thiệp vào máy (bên giám định của cửa hàng sẽ giám định kết quả).\n- Không bảo hành: vân tay, Face ID (sau 1 ngày mua hàng).\n### III. Quy định thu mua & trả lại hàng\n- Sau khi kết thúc giao dịch, với mọi lỗi đến từ nhà sản xuất, khách hàng sẽ được đổi trả miễn phí hoặc được hoàn lại 100% phí mua hàng.\n- Với trường hợp máy không bị lỗi mà khách hàng muốn đổi trả, cửa hàng sẽ thu mua lại với chi phí bằng 80% giá trị máy tại thời điểm đổi trả.\n- Mọi chi phí về bảo hành, đổi trả máy mới (máy trả bảo hành): khách hàng sẽ chịu 100% chi phí với máy có lỗi từ nhà sản xuất.\n## Gói bảo hành mở rộng\n- **Gói BH Đồng (Trị giá 300k):** Bảo hành 3 tháng đối với các sản phẩm, dịch vụ được cung cấp bởi Shop Nhà Táo.\n- **Gói BH Bạc (Trị giá 600k):** Bảo hành 6 tháng đối với các sản phẩm, dịch vụ được cung cấp bởi Shop Nhà Táo.\n- **Gói BH Vàng (Trị giá 1200k):** Bảo hành 12 tháng đối với các sản phẩm, dịch vụ được cung cấp bởi Shop Nhà Táo.\n- **Gói BH Kim Cương (Trị giá 1500k):** Bảo hành 1 đổi 1 trong 1 năm đối với các sản phẩm, dịch vụ được cung cấp bởi Shop Nhà Táo.\n- Để liên hệ bảo hành dịch vụ, khách hàng vui lòng liên hệ qua: Nhân viên bán hàng · Trang Facebook Shop Nhà Táo · Tại các cơ sở Shop Nhà Táo.\nShop Nhà Táo xin chân thành cảm ơn!",name:'Shop Nhà Táo',tagline:'Thương hiệu uy tín, đồng hành cùng tín đồ nhà Táo từ năm 2020. iPhone, iPad, MacBook, AirPods, Apple Watch mới & cũ cùng phụ kiện chính hãng; thay pin, thay màn hình lấy ngay.',phone:'0915.694.000',zalo:'',messenger:'https://m.me/ShopNhaTaoo',facebook:'https://www.facebook.com/ShopNhaTaoo',address:'Số 8, ngách 3/12 Nhân Hoà – Thanh Xuân – Hà Nội',hours:'8:30 – 21:30 hàng ngày',bank:'(Ngân hàng) · STK (số tài khoản) · Chủ TK (tên)',deposit:500000,staff:['Chủ shop','Nhân viên 1','Nhân viên 2','Nhân viên 3']};
 const SET=()=>{const s={...DEF,...(S.settings||{})};if(!Array.isArray(s.staff)||!s.staff.length)s.staff=DEF.staff;return s};
 const zaloUrl=()=>{const z=normPhone(SET().zalo||SET().phone);return z.length>=9?'https://zalo.me/'+z:SET().facebook};
 
 let DB=null;
 const S={inv:[],acc:[],svc:[],orders:[],repairs:[],photos:[],costsArr:[],staffList:[],shifts:[],payroll:[],stTab:'profile',shMonth:'',shStaff:'',prof:{},invRaw:[],accRaw:[],settings:null,loaded:{},err:null,slow:false,noDb:false,canWrite:true,
   view:(location.pathname.startsWith('/quan-tri')||location.hash==='#admin')?'admin':'shop',pvMob:false,pendingUnit:null,tab:'dash',shopFilter:'all',condF:'all',invCat:'all',invF:{},invSK:'date',invSD:'desc',invGroup:'',q:'',sort:'',svcQ:'',bhQ:'',
-  invQ:'',invSt:'instock',accQ:'',ordSt:'open',repSt:'open',cusQ:'',posQ:'',cart:[],posCust:{name:'',phone:'',pay:'Tiền mặt'},imp:null,
+  invQ:'',invSt:'instock',accQ:'',ordSt:'open',repSt:'open',cusQ:'',posQ:'',cart:[],posCust:{name:'',phone:'',address:'',paid:'',pay:'Tiền mặt'},imp:null,
   staff:'Chủ shop',role:'owner'};
 S.auth={ready:false,staff:false,owner:false,name:''};S.preview='';try{S.preview=sessionStorage.getItem('snt-preview')||''}catch(e){}
 const KEY={inventory:'inv',accessories:'acc',services:'svc',orders:'orders',repairs:'repairs',photos:'photos',costs:'costsArr',staff:'staffList',shifts:'shifts',payroll:'payroll'};
@@ -548,12 +585,15 @@ function aPos(){
   const total=S.cart.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);
   return hd('Bán tại quầy','Quét hoặc gõ IMEI, tên máy, tên phụ kiện để thêm vào đơn. Bán xong máy tự trừ khỏi kho và bắt đầu tính bảo hành.')+
   `<div class="pos"><div><div class="panel" style="padding:14px"><input id="q-pos" data-live="posQ" placeholder="IMEI, 15 Pro Max, sạc 20W…" value="${esc(S.posQ)}"></div>
+    ${pkgList().length?`<div class="panel" style="padding:10px 14px;margin-top:10px"><div class="muted" style="font-size:12px;margin-bottom:6px">Thêm nhanh gói bảo hành mở rộng</div><div class="chips">${pkgList().map((p,i)=>`<button class="chip" style="font-size:13px;padding:5px 12px" data-act="cartPkg" data-i="${i}">${esc(p.name.replace(/^Gói Bảo hành mở rộng - /,'BH '))} · ${money(p.price)}</button>`).join('')}</div></div>`:''}
     <div class="tbl-wrap" style="margin-top:10px">${q?(res.join('')||'<div class="empty" style="border:0">Không tìm thấy hàng trong kho.</div>'):'<div class="empty" style="border:0">Gõ để tìm hàng trong kho.</div>'}</div></div>
   <div class="panel"><h3>Đơn đang bán</h3>
     ${S.cart.length?S.cart.map((c,i)=>`<div class="cart-line"><div><b style="font-size:14px">${esc(c.name)}</b>${c.qty>1?' ×'+c.qty:''}<span class="muted" style="display:block;font-size:12px">${c.imei?'IMEI …'+esc(String(c.imei).slice(-5))+' · ':''}${c.warrantyMonths?'BH '+c.warrantyMonths+' tháng':''}</span></div><input id="cp-${i}" data-chg="cartPrice" data-i="${i}" value="${+c.price}" inputmode="numeric" title="Sửa giá nếu giảm giá"><button class="btn sm ghost" data-act="cartDel" data-i="${i}">×</button></div>`).join(''):'<p class="muted">Chưa có sản phẩm.</p>'}
     <div class="total"><span>Tổng</span><span>${money(total)}</span></div>
     <div class="fgrid"><div><label>Tên khách</label><input data-bind="posCust.name" value="${esc(S.posCust.name)}" placeholder="Khách lẻ"></div><div><label>Số điện thoại</label><input data-bind="posCust.phone" value="${esc(S.posCust.phone)}" placeholder="Để tra bảo hành"></div>
-    <div class="full"><label>Thanh toán</label><select data-chg="posPay">${['Tiền mặt','Chuyển khoản','Quẹt thẻ','Trả góp'].map(p=>`<option ${S.posCust.pay===p?'selected':''}>${p}</option>`).join('')}</select></div></div>
+    <div class="full"><label>Địa chỉ (in trên hóa đơn)</label><input data-bind="posCust.address" value="${esc(S.posCust.address)}"></div>
+    <div><label>Khách đã trả</label><input data-bind="posCust.paid" value="${esc(S.posCust.paid)}" inputmode="numeric" placeholder="Bỏ trống = trả đủ"></div>
+    <div><label>Thanh toán</label><select data-chg="posPay">${['Tiền mặt','Chuyển khoản','Quẹt thẻ','Trả góp'].map(p=>`<option ${S.posCust.pay===p?'selected':''}>${p}</option>`).join('')}</select></div></div>
     <button class="btn btn-red" style="width:100%;margin-top:14px;padding:12px" data-act="checkout" ${S.cart.length&&W_OK()?'':'disabled'}>Thanh toán · ${money(total)}</button>
   </div></div>`;
 }
@@ -801,7 +841,11 @@ function aSet(){
    <div class="full"><label>Địa chỉ</label><input name="address" value="${esc(st.address)}"></div>
    <div class="full"><label>Tài khoản nhận cọc</label><input name="bank" value="${esc(st.bank)}"></div>
    <div><label>Tiền cọc giữ máy (đ)</label><input name="deposit" inputmode="numeric" value="${+st.deposit}"></div>
-   <div><label>Nhân viên (cách nhau dấu phẩy, người đầu là chủ)</label><input name="staff" value="${esc(st.staff.join(', '))}"></div>
+   <div class="full" style="border-top:1px solid var(--line);padding-top:12px;margin-top:6px"><b>Hóa đơn / phiếu xuất kho</b></div>
+   <div><label>Dòng dưới tên shop</label><input name="subtitle" value="${esc(st.subtitle)}"></div>
+   <div><label>Email in trên hóa đơn</label><input name="email" value="${esc(st.email)}"></div>
+   <div class="full"><label>Gói bảo hành mở rộng (mỗi dòng: Tên | Giá | Số tháng), hiện nút thêm nhanh ở Bán tại quầy</label><textarea name="packages" rows="4" style="font-family:ui-monospace,monospace;font-size:13px">${esc(st.packages)}</textarea></div>
+   <div class="full"><label>Chính sách bảo hành (in ở trang 2 hóa đơn). Dòng bắt đầu “## ” là tiêu đề lớn, “### ” là mục, “- ” là gạch đầu dòng, **chữ** là in đậm</label><textarea name="warrantyPolicy" rows="12" style="font-size:13px">${esc(st.warrantyPolicy)}</textarea></div>
   </div><div class="foot"><button class="btn btn-red" ${W_OK()?'':'disabled'}>Lưu cài đặt</button></div></form>`;
 }
 
@@ -857,6 +901,27 @@ function repFormHTML(r){r=r||{kind:'inhouse',status:'received'};const sel=(v,o)=
   <div class="${r.id?'':'full'}"><label>Ghi chú (tình trạng máy khi nhận, mật khẩu…)</label><input name="note" value="${esc(r.note||'')}"></div>
   </div><div class="foot"><button type="button" class="btn ghost" data-act="close">Hủy</button><button class="btn btn-red">${r.id?'Lưu':'Tạo phiếu'}</button></div></form>`}
 
+function pkgList(){return String(SET().packages||'').split('\n').map(l=>l.split('|').map(s=>s.trim())).filter(a=>a[0]).map(a=>({name:a[0],price:num(a[1]),months:num(a[2])}))}
+const vnd=n=>(Math.round(+n||0)).toLocaleString('vi-VN');
+function mdLine(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}
+function policyHTML(t){const out=[];let ul=false;String(t||'').split('\n').forEach(l=>{const x=l.trim();if(!x)return;
+  if(x.startsWith('- ')){if(!ul){out.push('<ul>');ul=true}out.push('<li>'+mdLine(x.slice(2))+'</li>');return}
+  if(ul){out.push('</ul>');ul=false}
+  if(x.startsWith('## '))out.push('<h2>'+mdLine(x.slice(3))+'</h2>');else if(x.startsWith('### '))out.push('<h4>'+mdLine(x.slice(4))+'</h4>');else out.push('<p>'+mdLine(x)+'</p>')});
+  if(ul)out.push('</ul>');return out.join('')}
+function invoiceHTML(o,withPolicy){const st=SET();const items=o.items||[];const rows=items.map((it,i)=>`<tr><td class="c">${i+1}</td><td>${esc(it.name)}${it.cond?' – '+esc(it.cond):''}</td><td class="c sm">${esc(it.imei||'')}</td><td class="c">${+it.qty||1}</td><td class="c">${it.warrantyMonths?it.warrantyMonths+' tháng':''}</td><td class="r">${vnd(it.price)}</td><td class="r">${vnd((+it.price||0)*(+it.qty||1))}</td></tr>`);
+  for(let i=items.length;i<8;i++)rows.push('<tr class="blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
+  const d=new Date(o.doneAt||o.createdAt||Date.now());const paid=o.paid!=null?+o.paid:+o.total;
+  return `<div class="inv-page"><div class="inv-head"><img src="${LOGO_FULL}" alt=""><div class="inv-shop"><div class="n">${esc(st.name).toUpperCase()}</div><div class="sub">${esc(st.subtitle||'')}</div><div>${esc(st.address)}</div><div>Mobile: ${esc(st.phone)}</div>${st.email?`<div>Email: ${esc(st.email)}</div>`:''}</div></div>
+  <h1>PHIẾU XUẤT KHO</h1><div class="inv-code">Số: ${esc(o.code||'')}</div>
+  <div class="inv-cus"><div>Tên khách hàng: ${esc(o.customerName&&o.customerName!=='Khách lẻ'?o.customerName:'')}</div><div>Địa chỉ: ${esc(o.customerAddress||'')}</div><div>Điện thoại: ${esc(o.phone||'')}</div></div>
+  <table class="inv-t"><thead><tr><th style="width:6.5%">STT</th><th style="width:29.5%">Sản phẩm</th><th style="width:15%">Serial</th><th style="width:5%">SL</th><th style="width:11%">Bảo hành</th><th style="width:15%">Đơn giá</th><th style="width:18%">Thành tiền</th></tr></thead><tbody>${rows.join('')}</tbody>
+  <tfoot><tr><td colspan="6" class="r b">Tổng cộng:</td><td class="r b">${vnd(o.total)}</td></tr><tr><td colspan="6" class="r b">Đã thanh toán:</td><td class="r b">${vnd(paid)}</td></tr><tr><td colspan="6" class="r b">Còn lại:</td><td class="r b">${vnd((+o.total||0)-paid)}</td></tr></tfoot></table>
+  <div class="inv-sign"><div><div>&nbsp;</div><b>Người mua hàng</b><i>(Ký, ghi rõ họ tên)</i></div><div><div>Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}</div><b>Người bán hàng</b><i>(Ký, ghi rõ họ tên)</i><div class="nm">${esc(o.staff||'')}</div></div></div>
+  <div class="inv-foot">Hotline: ${esc(st.phone)}</div></div>
+  ${withPolicy&&st.warrantyPolicy?`<div class="inv-page inv-policy">${policyHTML(st.warrantyPolicy)}</div>`:''}`}
+function printInvoice(o,withPolicy){const a=$('#print-area');a.innerHTML=invoiceHTML(o,withPolicy);const done=()=>{a.innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
+  const imgs=[...a.querySelectorAll('img')];Promise.all(imgs.map(im=>im.complete?1:new Promise(r=>{im.onload=im.onerror=r}))).then(()=>setTimeout(()=>window.print(),50))}
 function receiptText(o){const st=SET();const L=[];L.push(st.name.toUpperCase(),st.address,'Hotline: '+st.phone,'----------------------------------','HÓA ĐƠN '+o.code,'Ngày: '+new Date(o.doneAt||o.createdAt).toLocaleString('vi-VN'),'Khách: '+(o.customerName||'Khách lẻ')+(o.phone?' – '+o.phone:''),'----------------------------------');
   (o.items||[]).forEach(i=>{L.push(i.name+(i.qty>1?' x'+i.qty:''));if(i.imei)L.push('  IMEI: '+i.imei);if(i.warrantyMonths)L.push('  Bảo hành: '+i.warrantyMonths+' tháng');L.push('  '+money(i.price*(i.qty||1)))});
   L.push('----------------------------------','TỔNG: '+money(o.total));if(o.deposit)L.push('Đã cọc: '+money(o.deposit),'Còn lại: '+money(o.total-o.deposit));if(o.pay)L.push('Thanh toán: '+o.pay);L.push('Nhân viên: '+(o.staff||''),'','Cảm ơn quý khách! Tra bảo hành online bằng SĐT.');return L.join('\n')}
@@ -924,17 +989,25 @@ const ACT={
     if(v==='done'){const ok=await W(async()=>{await col('orders').doc(o.id).update({status:'done',doneAt:now(),staff:S.staff});await applyDone(o.items||[],o.code)},'Đã hoàn tất đơn, máy đã trừ kho');if(ok)ACT.receipt({id:o.id})}},
   ordCancel:async d=>{const o=S.orders.find(x=>x.id===d.id);if(!o)return;closeModal();
     await W(async()=>{await col('orders').doc(o.id).update({status:'cancelled',staff:S.staff});for(const it of (o.items||[])){if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u&&u.status==='reserved'&&u.orderCode===o.code)await safeUpd('inventory',u.id,{status:'instock',orderCode:''})}}},'Đã hủy đơn')},
-  receipt:d=>{const o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;openModal(`<h2>Hóa đơn ${esc(o.code)}</h2><pre class="rcpt" id="rcpt">${esc(receiptText(o))}</pre><div class="foot"><button class="btn" data-act="copy" data-src="rcpt">Sao chép để gửi khách</button><button class="btn btn-ink" data-act="close">Xong</button></div><p class="muted" style="font-size:12px">Bản thật sẽ có nút in hóa đơn khổ K80 qua máy in nhiệt.</p>`)},
-  cartAdd:d=>{if(d.k==='phone'){const x=S.inv.find(i=>i.id===d.id);if(!x)return;S.cart.push({kind:'phone',refId:x.id,name:`${x.model} ${x.storage} ${x.color}`,imei:x.imei||'',price:+x.price||0,cost:+x.costPrice||0,qty:1,warrantyMonths:+x.warrantyMonths||0})}
+  receipt:d=>{const o=S.orders.find(x=>x.id===d.id)||d.o;if(!o)return;S.rcptO=o;const paid=o.paid!=null?o.paid:(o.source==='store'?o.total:o.total);
+    openModal(`<h2>Hóa đơn ${esc(o.code)}</h2><p class="muted" style="margin-top:0">${esc(o.customerName||'Khách lẻ')}${o.phone?' · '+esc(o.phone):''} · Tổng ${money(o.total)}</p>
+    <form data-form="printInv"><div class="fgrid"><div class="full"><label>Địa chỉ khách (in trên hóa đơn)</label><input name="address" value="${esc(o.customerAddress||'')}"></div>
+    <div><label>Đã thanh toán</label><input name="paid" inputmode="numeric" value="${paid}"></div><div><label>Người bán hàng</label><input name="seller" value="${esc(o.staff||S.staff||'')}"></div>
+    <div class="full"><label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" name="policy" checked style="width:auto"> In kèm trang chính sách bảo hành</label></div></div>
+    <div class="foot" style="justify-content:space-between;flex-wrap:wrap"><button type="button" class="btn" data-act="copyRcpt">Sao chép gửi Zalo</button><div class="row"><button type="button" class="btn ghost" data-act="close">Đóng</button><button class="btn btn-red">🖨 In hóa đơn</button></div></div></form>
+    <pre class="rcpt hidden" id="rcpt">${esc(receiptText(o))}</pre>`)},
+  copyRcpt:async()=>{const t=$('#rcpt');try{await navigator.clipboard.writeText(t.textContent);toast('Đã sao chép')}catch(e){toast('Không sao chép được')}},
+  cartAdd:d=>{if(d.k==='phone'){const x=S.inv.find(i=>i.id===d.id);if(!x)return;S.cart.push({kind:'phone',refId:x.id,name:`${x.model} ${x.storage} ${x.color}`,cond:x.condition==='new'?'New Seal':(COND[x.condition]||''),imei:x.imei||'',price:+x.price||0,cost:+x.costPrice||0,qty:1,warrantyMonths:+x.warrantyMonths||0})}
     else{const a=S.acc.find(i=>i.id===d.id);if(!a)return;const ex=S.cart.find(c=>c.refId===a.id);if(ex){if(ex.qty<(+a.qty||0))ex.qty++;else toast('Hết hàng trong kho')}else S.cart.push({kind:'acc',refId:a.id,name:a.name,imei:'',price:+a.price||0,cost:+a.cost||0,qty:1,warrantyMonths:0})}
     S.posQ='';render();const q=$('#q-pos');if(q)q.focus()},
+  cartPkg:d=>{const p=pkgList()[+d.i];if(!p)return;S.cart.push({kind:'svc',refId:'',name:p.name,imei:'',price:p.price,cost:0,qty:1,warrantyMonths:p.months});render()},
   cartDel:d=>{S.cart.splice(+d.i,1);render()},
   checkout:async()=>{if(!S.cart.length)return;
     for(const c of S.cart){if(c.kind==='phone'){const u=S.inv.find(x=>x.id===c.refId);if(!u||u.status!=='instock')return toast(c.name+' không còn trong kho')}}
     const code=mkCode('HD');const items=S.cart.map(x=>({...x}));const total=items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);
-    const o={code,source:'store',customerName:S.posCust.name.trim()||'Khách lẻ',phone:normPhone(S.posCust.phone),pay:S.posCust.pay,items,total,deposit:0,status:'done',createdAt:now(),doneAt:now(),staff:S.staff,note:''};
+    const paidIn=String(S.posCust.paid||'').trim();const o={code,source:'store',customerName:S.posCust.name.trim()||'Khách lẻ',phone:normPhone(S.posCust.phone),customerAddress:(S.posCust.address||'').trim(),paid:paidIn===''?total:Math.min(total,num(paidIn)),pay:S.posCust.pay,items,total,deposit:0,status:'done',createdAt:now(),doneAt:now(),staff:S.staff,note:''};
     const ok=await W(async()=>{await col('orders').doc(code).set(o);await applyDone(items,code)},'Đã bán xong');
-    if(ok){S.cart=[];S.posCust={name:'',phone:'',pay:'Tiền mặt'};render();ACT.receipt({o})}},
+    if(ok){S.cart=[];S.posCust={name:'',phone:'',address:'',paid:'',pay:'Tiền mặt'};render();ACT.receipt({o})}},
   invForm:d=>{const x=d.id?S.inv.find(i=>i.id===d.id):null;S.formImgs=unitImgs(x).slice();S.formOrig=S.formImgs.slice();openModal(invFormHTML(x));renderFormImgs()},
   invSortBy:d=>{if(S.invSK===d.k)S.invSD=S.invSD==='asc'?'desc':'asc';else{S.invSK=d.k;S.invSD=['name','imei','cond','status'].includes(d.k)?'asc':'desc'}render()},
   invSame:d=>{const x=S.inv.find(i=>i.id===d.id);if(!x)return;S.invGroup='';S.invF={...S.invF,model:x.model,storage:x.storage||'',color:x.color||''};render()},
@@ -982,7 +1055,7 @@ const ACT={
     const ok=await W(async()=>{for(let i=0;i<recs.length;i+=5){await Promise.all(recs.slice(i,i+5).map(p=>{const doc=I.target==='inv'?p:{name:p.name,category:p.category,cost:p.cost,price:p.price,qty:p.qty};return putDoc(coll,col(coll).doc(),{...doc,importedAt:now()},'set')}));I.done=Math.min(recs.length,i+5);schedule()}});
     I.busy=false;I.result=ok?`Đã nhập ${recs.length} dòng${skipped?`, bỏ qua ${skipped} dòng thiếu tên hoặc giá`:''}.`:'Nhập bị dừng giữa chừng, kiểm tra lại rồi thử lại.';render()},
 };
-async function applyDone(items,code){for(const it of items){if(it.kind==='phone')await safeUpd('inventory',it.refId,{status:'sold',soldAt:now(),orderCode:code});else{const a=S.acc.find(x=>x.id===it.refId);if(a)await safeUpd('accessories',a.id,{qty:Math.max(0,(+a.qty||0)-(+it.qty||1))})}}}
+async function applyDone(items,code){for(const it of items){if(it.kind==='svc')continue;if(it.kind==='phone')await safeUpd('inventory',it.refId,{status:'sold',soldAt:now(),orderCode:code});else{const a=S.acc.find(x=>x.id===it.refId);if(a)await safeUpd('accessories',a.id,{qty:Math.max(0,(+a.qty||0)-(+it.qty||1))})}}}
 
 const num=v=>{const n=+String(v??'').replace(/[^\d]/g,'');return isNaN(n)?0:n};
 function demoDone_unused(t,b){openModal(`<h2>${t}</h2><p>${b}</p><div class="banner" style="margin-top:12px">Bản xem trước: đơn này <b>không được lưu</b>. Khi chạy bằng tên miền riêng, đơn sẽ vào mục Đơn hàng / Sửa chữa và nhân viên nhận thông báo.</div><div class="foot"><button class="btn btn-ink" data-act="close">Đóng</button></div>`)}
@@ -1027,13 +1100,16 @@ const FORM={
     for(let i=0;i<7;i++){if(!v['i'+i])continue;rows.push({staffId:st.id,staffName:st.name,date:v['d'+i],in:v['i'+i],out:v['o'+i]||'',breakMin:num(v['b'+i]),note:'',rate:staffRate(st),createdAt:now(),by:S.staff})}
     if(!rows.length)return toast('Chưa điền ngày nào');
     if(await W(async()=>{for(const r of rows)await col('shifts').doc().set(r)},'Đã lưu '+rows.length+' ca'))closeModal()},
+  printInv:async v=>{const o=S.rcptO;if(!o)return;const upd={customerAddress:(v.address||'').trim(),paid:Math.min(+o.total||0,num(v.paid)),staff:(v.seller||'').trim()||o.staff||''};
+    if(o.id&&S.auth.staff){try{await col('orders').doc(o.id).update(upd)}catch(e){console.warn(e)}}
+    printInvoice({...o,...upd},!!v.policy)},
   login:async v=>{let u=String(v.u||'').trim().toLowerCase();if(!u)return;if(!u.includes('@'))u=u+'@'+STAFF_DOMAIN;
     try{await fauth.signInWithEmailAndPassword(u,v.p||'');S.tab='dash'}catch(e){console.warn(e);toast(e&&e.code==='auth/too-many-requests'?'Nhập sai quá nhiều lần, thử lại sau ít phút':'Sai tên đăng nhập hoặc mật khẩu')}},
   staff:async v=>{const d={id:v.id||'',name:v.name.trim(),phone:normPhone(v.phone),role:v.role,startDate:v.startDate||'',status:v.status,note:(v.note||'').trim(),rate:num(v.rate)||DEF_RATE,perm:v.perm||undefined,username:v.username!=null?String(v.username).trim().toLowerCase():undefined,password:v.password||''};
     if(d.username!==undefined&&!/^[a-z0-9._]{3,30}$/.test(d.username))return toast('Tên đăng nhập 3–30 ký tự: chữ thường không dấu, số, dấu chấm');
     if(!d.id&&d.password.length<6)return toast('Mật khẩu cần ít nhất 6 ký tự');if(d.id&&d.password&&d.password.length<6)return toast('Mật khẩu cần ít nhất 6 ký tự');
     if(await W(()=>callFn(d.id?'updateStaff':'createStaff',d),d.id?'Đã lưu hồ sơ':'Đã tạo tài khoản nhân viên'))closeModal()},
-  settings:async v=>{const d={...v,deposit:num(v.deposit),staff:String(v.staff||'').split(',').map(s=>s.trim()).filter(Boolean)};
+  settings:async v=>{const d={...v,deposit:num(v.deposit)};delete d.staff;
     await W(()=>DB.doc('settings/shop').set(d),'Đã lưu cài đặt')},
 };
 const CHG={
