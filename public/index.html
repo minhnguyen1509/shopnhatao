@@ -138,6 +138,7 @@ footer.sh-foot{border-top:1px solid var(--line);padding:24px 0 90px;color:var(--
 .adm aside .tab:hover{background:#ffffff10}
 .adm aside .tab.on{background:#FBF8F3;color:var(--ink);font-weight:700}
 .adm aside .mob-only{display:none}
+.promo-box{border:1px dashed var(--line);border-radius:12px;padding:10px 12px;margin-top:12px}
 .ret-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}.ret-it{border:1px solid var(--line);border-radius:12px;padding:10px 12px}.ret-chk{display:flex;gap:10px;align-items:flex-start;font-weight:500}.ret-chk input{width:auto;margin-top:3px}.ret-chk small{display:block;font-size:12px}
 .adm aside .tab .n{background:var(--red);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;font-weight:700}
 .adm aside .who{margin-top:auto;padding:12px 8px 0;border-top:1px solid #ffffff1a;font-size:12px;color:#A99F92}
@@ -163,8 +164,8 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .list-h{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}.list-h h3{margin:0;font-size:16px}
 .pos{display:grid;grid-template-columns:1fr 400px;gap:16px;align-items:start}
 .res-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid #F1EBE2}
-.cart-line{display:grid;grid-template-columns:1fr 110px 28px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #F1EBE2}
-.cart-line input{padding:6px 8px;text-align:right}
+.cart-line{display:grid;grid-template-columns:1fr 104px 34px 34px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #F1EBE2}
+.cart-line input{padding:6px 8px;text-align:right}.cart-line .btn.sm{padding:6px 0;width:34px;justify-content:center}
 .total{display:flex;justify-content:space-between;font-size:20px;font-weight:800;padding:12px 0}
 .bars{display:flex;align-items:flex-end;gap:18px;height:220px;padding:10px 4px 0;border-bottom:1px solid var(--line)}
 .bars .m{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
@@ -311,7 +312,7 @@ const zaloUrl=()=>{const z=normPhone(SET().zalo||SET().phone);return z.length>=9
 let DB=null;
 const S={inv:[],acc:[],svc:[],orders:[],repairs:[],photos:[],costsArr:[],staffList:[],shifts:[],payroll:[],stTab:'profile',shMonth:'',shStaff:'',prof:{},invRaw:[],accRaw:[],settings:null,loaded:{},err:null,slow:false,noDb:false,canWrite:true,
   view:(location.pathname.startsWith('/quan-tri')||location.hash==='#admin')?'admin':'shop',pvMob:false,pendingUnit:null,tab:'dash',shopFilter:'all',condF:'all',invCat:'all',invF:{},invSK:'date',invSD:'desc',invGroup:'',q:'',sort:'',svcQ:'',bhQ:'',
-  invQ:'',invSt:'instock',accQ:'',ordSt:'open',repSt:'open',cusQ:'',posQ:'',cart:[],posCust:{name:'',phone:'',address:'',paid:'',pay:'Tiền mặt'},imp:null,
+  invQ:'',invSt:'instock',accQ:'',ordSt:'open',repSt:'open',cusQ:'',posQ:'',cart:[],posCust:{name:'',phone:'',address:'',paid:'',pay:'Tiền mặt',disc:'',promo:''},imp:null,
   staff:'Chủ shop',role:'owner'};
 S.auth={ready:false,staff:false,owner:false,name:''};S.preview='';try{S.preview=sessionStorage.getItem('snt-preview')||''}catch(e){}
 const KEY={inventory:'inv',accessories:'acc',services:'svc',orders:'orders',repairs:'repairs',photos:'photos',costs:'costsArr',staff:'staffList',shifts:'shifts',payroll:'payroll'};
@@ -398,6 +399,7 @@ function warrantyEnd(o,it){if(!it.warrantyMonths)return null;const d=new Date(o.
 const SOLD=o=>o.status==='done'||o.status==='returned';
 const retQ=it=>+it.retQty||0,remQ=it=>Math.max(0,(+it.qty||1)-retQ(it));
 function unitCost(it){const cm=S.costMap||{};return +it.cost||(it.kind==='phone'?+((cm['inv-'+it.refId]||{}).costPrice||0):+((cm['acc-'+it.refId]||{}).cost||0))}
+function discAmt(v,sub){const s=String(v||'').trim();if(!s)return 0;if(/%\s*$/.test(s)){const pc=Math.min(100,Math.max(0,parseFloat(s.replace(',','.'))||0));return Math.round(sub*pc/100/1000)*1000}return Math.min(sub,num(s))}
 function customers(){
   const m={};const add=(phone,name,t)=>{if(!phone)return null;const c=m[phone]=m[phone]||{phone,name:'',orders:0,spent:0,repairs:0,last:0};if(name&&name!=='Khách lẻ')c.name=name;c.last=Math.max(c.last,t||0);return c};
   S.orders.filter(SOLD).forEach(o=>{const c=add(o.phone,o.customerName,o.doneAt||o.createdAt);if(c){c.orders++;c.spent+=(+o.total||0)-(+o.refundTotal||0)}});
@@ -408,7 +410,7 @@ const mKey=t=>{const d=new Date(t);return d.getFullYear()+'-'+String(d.getMonth(
 function finance(){
   const by={};const g=k=>by[k]=by[k]||{rev:0,cost:0,phone:0,acc:0,rep:0,repCost:0};
   S.orders.filter(SOLD).forEach(o=>{(o.returns||[]).forEach(rt=>{const b=g(mKey(rt.at));b.rev-=+rt.refund||0;(rt.items||[]).forEach(x=>{const it=(o.items||[])[x.i];if(!it)return;const pr=(+it.price||0)*(+x.qty||1);if(it.kind==='phone')b.phone-=pr;else b.acc-=pr;if(x.restock)b.cost-=unitCost(it)*(+x.qty||1)})})});
-  S.orders.filter(SOLD).forEach(o=>{const b=g(mKey(o.doneAt||o.createdAt));(o.items||[]).forEach(it=>{const uc=unitCost(it);const r=(+it.price||0)*(+it.qty||1),c=uc*(+it.qty||1);b.rev+=r;b.cost+=c;if(it.kind==='phone')b.phone+=r;else b.acc+=r})});
+  S.orders.filter(SOLD).forEach(o=>{const b=g(mKey(o.doneAt||o.createdAt));if(+o.discount){b.rev-=+o.discount;if((o.items||[]).some(i=>i.kind==='phone'))b.phone-=+o.discount;else b.acc-=+o.discount}(o.items||[]).forEach(it=>{const uc=unitCost(it);const r=(+it.price||0)*(+it.qty||1),c=uc*(+it.qty||1);b.rev+=r;b.cost+=c;if(it.kind==='phone')b.phone+=r;else b.acc+=r})});
   S.repairs.filter(r=>r.status==='returned').forEach(r=>{const b=g(mKey(r.returnedAt||r.createdAt));b.rev+=+r.quote||0;b.cost+=+r.cost||0;b.rep+=+r.quote||0;b.repCost+=+r.cost||0});
   return by;
 }
@@ -570,7 +572,7 @@ function aDash(){
 function ordTable(list,compact){
   if(!list.length)return `<div class="empty">Không có đơn nào.</div>`;
   return `<div class="tbl-wrap"><table><thead><tr><th>Đơn</th><th>Khách</th>${compact?'':'<th>Sản phẩm</th>'}<th class="num">Tổng / cọc</th><th>Trạng thái</th><th></th></tr></thead><tbody>${list.map(o=>{const s=ORD_ST[o.status]||['',''];
-    return `<tr><td><b>${esc(o.code)}</b><span class="s">${fmtDT(o.createdAt)} · ${o.source==='web'?'Web':'Tại quầy'}</span></td><td>${esc(o.customerName)}<span class="s">${esc(o.phone)}</span></td>${compact?'':`<td>${(o.items||[]).map(i=>`${esc(i.name)}${i.qty>1?' ×'+i.qty:''}${i.imei?`<span class="s">IMEI …${esc(String(i.imei).slice(-5))}</span>`:''}`).join('<br>')}${o.note?`<span class="s">Ghi chú: ${esc(o.note)}</span>`:''}${(o.returns||[]).map(r=>`<span class="s" style="color:var(--red)">↩ ${fmtDT(r.at)} trả ${(r.items||[]).map(x=>{const it=(o.items||[])[x.i];return it?esc(it.name)+((+x.qty||1)>1?' ×'+x.qty:''):''}).join(', ')} · hoàn ${money(r.refund)}${r.reason?' · '+esc(r.reason):''}${r.staff?' · '+esc(r.staff):''}</span>`).join('')}</td>`}<td class="num"><b>${money(o.total)}</b>${o.refundTotal?`<span class="s" style="color:var(--red)">Đã hoàn ${money(o.refundTotal)}</span>`:''}${o.deposit?`<span class="s">Cọc ${money(o.deposit)}</span>`:''}</td><td>${pill(s[0],s[1])}${o.staff?`<span class="s">${esc(o.staff)}</span>`:''}</td><td><div class="acts">${W_OK()?ordActs(o):''}</div></td></tr>`}).join('')}</tbody></table></div>`;
+    return `<tr><td><b>${esc(o.code)}</b><span class="s">${fmtDT(o.createdAt)} · ${o.source==='web'?'Web':'Tại quầy'}</span></td><td>${esc(o.customerName)}<span class="s">${esc(o.phone)}</span></td>${compact?'':`<td>${(o.items||[]).map(i=>`${esc(i.name)}${i.qty>1?' ×'+i.qty:''}${i.imei?`<span class="s">IMEI …${esc(String(i.imei).slice(-5))}</span>`:''}`).join('<br>')}${o.note?`<span class="s">Ghi chú: ${esc(o.note)}</span>`:''}${(o.returns||[]).map(r=>`<span class="s" style="color:var(--red)">↩ ${fmtDT(r.at)} trả ${(r.items||[]).map(x=>{const it=(o.items||[])[x.i];return it?esc(it.name)+((+x.qty||1)>1?' ×'+x.qty:''):''}).join(', ')} · hoàn ${money(r.refund)}${r.reason?' · '+esc(r.reason):''}${r.staff?' · '+esc(r.staff):''}</span>`).join('')}</td>`}<td class="num"><b>${money(o.total)}</b>${+o.discount?`<span class="s">KM −${money(o.discount)}${o.promo?' · '+esc(o.promo):''}</span>`:''}${o.refundTotal?`<span class="s" style="color:var(--red)">Đã hoàn ${money(o.refundTotal)}</span>`:''}${o.deposit?`<span class="s">Cọc ${money(o.deposit)}</span>`:''}</td><td>${pill(s[0],s[1])}${o.staff?`<span class="s">${esc(o.staff)}</span>`:''}</td><td><div class="acts">${W_OK()?ordActs(o):''}</div></td></tr>`}).join('')}</tbody></table></div>`;
 }
 function ordActs(o){
   const b=[];
@@ -587,20 +589,25 @@ function aOrders(){
 }
 
 function aPos(){
-  const q=S.posQ.toLowerCase().trim();
+  const st=SET();const q=S.posQ.toLowerCase().trim();
   const inCart=new Set(S.cart.map(c=>c.refId));
   let res=[];
   if(q){
     S.inv.filter(x=>x.status==='instock'&&!inCart.has(x.id)&&(`${x.model} ${x.storage} ${x.color} ${x.imei}`).toLowerCase().includes(q)).slice(0,12).forEach(x=>res.push(`<div class="res-item"><div><b>${esc(x.model)} ${esc(x.storage)} · ${esc(x.color)}</b><span class="s muted" style="display:block;font-size:12px">${COND[x.condition]||''}${x.condition!=='new'&&x.battery?' · Pin '+x.battery+'%':''} · IMEI ${esc(x.imei||'—')}</span></div><div class="row"><b>${money(x.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="phone" data-id="${esc(x.id)}">Thêm</button></div></div>`));
     S.acc.filter(a=>(+a.qty||0)>0&&(`${a.name} ${a.category}`).toLowerCase().includes(q)).slice(0,10).forEach(a=>res.push(`<div class="res-item"><div><b>${esc(a.name)}</b><span class="muted" style="display:block;font-size:12px">${esc(a.category||'')} · còn ${+a.qty}</span></div><div class="row"><b>${money(a.price)}</b><button class="btn sm btn-ink" data-act="cartAdd" data-k="acc" data-id="${esc(a.id)}">Thêm</button></div></div>`));
   }
-  const total=S.cart.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);
+  const sub=S.cart.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const disc=discAmt(S.posCust.disc,sub);const total=Math.max(0,sub-disc);
   return hd('Bán tại quầy','Quét hoặc gõ IMEI, tên máy, tên phụ kiện để thêm vào đơn. Bán xong máy tự trừ khỏi kho và bắt đầu tính bảo hành.')+
   `<div class="pos"><div><div class="panel" style="padding:14px"><input id="q-pos" data-live="posQ" placeholder="IMEI, 15 Pro Max, sạc 20W…" value="${esc(S.posQ)}"></div>
     ${pkgList().length?`<div class="panel" style="padding:10px 14px;margin-top:10px"><div class="muted" style="font-size:12px;margin-bottom:6px">Thêm nhanh gói bảo hành mở rộng</div><div class="chips">${pkgList().map((p,i)=>`<button class="chip" style="font-size:13px;padding:5px 12px" data-act="cartPkg" data-i="${i}">${esc(p.name.replace(/^Gói Bảo hành mở rộng - /,'BH '))} · ${money(p.price)}</button>`).join('')}</div></div>`:''}
     <div class="tbl-wrap" style="margin-top:10px">${q?(res.join('')||'<div class="empty" style="border:0">Không tìm thấy hàng trong kho.</div>'):'<div class="empty" style="border:0">Gõ để tìm hàng trong kho.</div>'}</div></div>
   <div class="panel"><h3>Đơn đang bán</h3>
-    ${S.cart.length?S.cart.map((c,i)=>`<div class="cart-line"><div><b style="font-size:14px">${esc(c.name)}</b>${c.qty>1?' ×'+c.qty:''}<span class="muted" style="display:block;font-size:12px">${c.imei?'IMEI …'+esc(String(c.imei).slice(-5))+' · ':''}${c.warrantyMonths?'BH '+c.warrantyMonths+' tháng':''}</span></div><input id="cp-${i}" data-chg="cartPrice" data-i="${i}" value="${+c.price}" inputmode="numeric" title="Sửa giá nếu giảm giá"><button class="btn sm ghost" data-act="cartDel" data-i="${i}">×</button></div>`).join(''):'<p class="muted">Chưa có sản phẩm.</p>'}
+    ${S.cart.length?S.cart.map((c,i)=>`<div class="cart-line"><div><b style="font-size:14px">${esc(c.name)}</b>${c.qty>1?' ×'+c.qty:''}${c.gift?' '+pill('Quà tặng','green'):''}<span class="muted" style="display:block;font-size:12px">${c.imei?'IMEI …'+esc(String(c.imei).slice(-5))+' · ':''}${c.warrantyMonths?'BH '+c.warrantyMonths+' tháng':''}</span></div><input id="cp-${i}" data-chg="cartPrice" data-i="${i}" value="${+c.price}" inputmode="numeric" title="Sửa giá nếu giảm giá" ${c.gift?'disabled':''}><button class="btn sm ${c.gift?'btn-green':'ghost'}" data-act="cartGift" data-i="${i}" title="Đánh dấu quà tặng (0đ)">🎁</button><button class="btn sm ghost" data-act="cartDel" data-i="${i}">×</button></div>`).join(''):'<p class="muted">Chưa có sản phẩm.</p>'}
+    <div class="promo-box"><div class="muted" style="font-size:12px;font-weight:600;margin-bottom:6px">KHUYẾN MẠI</div>
+      <div class="fgrid" style="margin:0"><div><label>Tên chương trình</label><input data-chg="posPromo" value="${esc(S.posCust.promo)}" placeholder="VD: Black Friday"></div><div><label>Giảm giá đơn</label><input data-chg="posDisc" value="${esc(S.posCust.disc)}" placeholder="500000 hoặc 5%"></div></div>
+      ${(st.promos||'').trim()?`<div class="chips" style="margin-top:8px">${String(st.promos).split('\n').map(x=>x.trim()).filter(Boolean).map(x=>{const m=x.split('|');return `<button class="chip" style="font-size:12.5px;padding:4px 10px" data-act="posPromoPick" data-n="${esc((m[0]||'').trim())}" data-d="${esc((m[1]||'').trim())}">${esc((m[0]||'').trim())}${m[1]?' · −'+esc(m[1].trim()):''}</button>`}).join('')}</div>`:''}
+      <div class="muted" style="font-size:12px;margin-top:6px">Bấm 🎁 ở từng món để tặng kèm miễn phí.</div></div>
+    ${disc?`<div class="row" style="justify-content:space-between;margin-top:10px;font-size:14px"><span>Cộng tiền hàng</span><span>${money(sub)}</span></div><div class="row" style="justify-content:space-between;font-size:14px;color:var(--red)"><span>Khuyến mại${S.posCust.promo?' · '+esc(S.posCust.promo):''}</span><span>−${money(disc)}</span></div>`:''}
     <div class="total"><span>Tổng</span><span>${money(total)}</span></div>
     <div class="fgrid"><div><label>Tên khách</label><input data-bind="posCust.name" value="${esc(S.posCust.name)}" placeholder="Khách lẻ"></div><div><label>Số điện thoại</label><input data-bind="posCust.phone" value="${esc(S.posCust.phone)}" placeholder="Để tra bảo hành"></div>
     <div class="full"><label>Địa chỉ (in trên hóa đơn)</label><input data-bind="posCust.address" value="${esc(S.posCust.address)}"></div>
@@ -859,6 +866,7 @@ function aSet(){
    <div><label>Số điện thoại in trên phiếu</label><input name="invPhones" value="${esc(st.invPhones)}"></div>
    <div><label>Email in trên phiếu</label><input name="invEmail" value="${esc(st.invEmail)}"></div>
    <div class="full"><label>Gói bảo hành mở rộng (mỗi dòng: Tên | Giá | Số tháng), hiện nút thêm nhanh ở Bán tại quầy</label><textarea name="packages" rows="4" style="font-family:ui-monospace,monospace;font-size:13px">${esc(st.packages)}</textarea></div>
+   <div class="full"><label>Khuyến mại hay dùng (hiện thành nút bấm nhanh ở Bán tại quầy). Mỗi dòng: Tên chương trình | mức giảm, ví dụ “Black Friday | 5%” hoặc “Khách quen | 200000”</label><textarea name="promos" rows="3" style="font-size:13px" placeholder="Black Friday | 5%&#10;Khách quen | 200000">${esc(st.promos||'')}</textarea></div>
    <div class="full"><label>Chính sách bảo hành (in ở trang 2). Dòng bắt đầu “## ” là tiêu đề, “### ” là mục, “- ” là gạch đầu dòng, “+ ” là dòng con xuống hàng, **chữ** là in đậm</label><textarea name="invPolicy" rows="12" style="font-size:13px">${esc(st.invPolicy)}</textarea></div>
    <div class="full" style="border-top:1px solid var(--line);padding-top:12px;margin-top:6px"><b>Gửi phiếu bảo hành qua email</b><div class="muted" style="font-size:12px">Email gửi đi từ <b>hm.istore25@gmail.com</b>. Cần “Mật khẩu ứng dụng” (App Password) 16 ký tự của Gmail đó. Mật khẩu chỉ lưu trên máy chủ, không ai đọc lại được trên web.</div></div>
    <div><label>Mật khẩu ứng dụng Gmail</label><input id="mail-pass" type="password" autocomplete="new-password" placeholder="${S.mailOk?'Đã lưu · nhập để thay':'xxxx xxxx xxxx xxxx'}"></div>
@@ -928,21 +936,21 @@ function policyHTML(t){const out=[];let ul=false;String(t||'').split('\n').forEa
   if(x.startsWith('## '))out.push('<h2>'+mdLine(x.slice(3))+'</h2>');else if(x.startsWith('### '))out.push('<h4>'+mdLine(x.slice(4))+'</h4>');else out.push('<p>'+mdLine(x)+'</p>')});
   if(ul)out.push('</ul>');return out.join('')}
 function itemCond(it){if(it.cond)return it.cond;if(it.kind==='phone'){const u=S.inv.find(x=>x.id===it.refId);if(u)return u.condition==='new'?'New Seal':u.condition==='likenew'?'Likenew':'Đã qua sử dụng'}return ''}
-function invoiceHTML(o,withPolicy){const st=SET();const items=o.items||[];const rows=items.map((it,i)=>`<tr><td class="c">${i+1}</td><td>${esc(it.name)}${(+it.qty||1)>1?' (x'+(+it.qty)+')':''}</td><td class="c sm">${esc(it.imei||'')}</td><td class="c">${esc(itemCond(it))}</td><td class="c">${it.warrantyMonths?it.warrantyMonths+' tháng':''}</td><td class="r">${vnd(it.price)}</td><td class="r">${vnd((+it.price||0)*(+it.qty||1))}</td></tr>`);
+function invoiceHTML(o,withPolicy){const st=SET();const items=o.items||[];const rows=items.map((it,i)=>`<tr><td class="c">${i+1}</td><td>${esc(it.name)}${(+it.qty||1)>1?' (x'+(+it.qty)+')':''}${it.gift?' <i>(Quà tặng)</i>':''}</td><td class="c sm">${esc(it.imei||'')}</td><td class="c">${esc(itemCond(it))}</td><td class="c">${it.warrantyMonths?it.warrantyMonths+' tháng':''}</td><td class="r">${vnd(it.price)}</td><td class="r">${vnd((+it.price||0)*(+it.qty||1))}</td></tr>`);
   for(let i=items.length;i<6;i++)rows.push('<tr class="blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
   const d=new Date(o.doneAt||o.createdAt||Date.now());
   return `<div class="inv-page"><div class="inv-head"><img src="${LOGO_FULL}" alt=""><div class="inv-shop"><div class="n">${esc(st.name).toUpperCase()}</div><div class="sub">${esc(st.invCompany||'')}</div><div>${esc(st.address)}</div><div>Mobile: ${esc(st.invPhones||st.phone)}</div>${st.invEmail?`<div>Email: ${esc(st.invEmail)}</div>`:''}</div></div>
   <h1>${esc(st.invTitle||'PHIẾU BẢO HÀNH')}</h1><div class="inv-code">Số: ${esc(o.code||'')}</div>
   <div class="inv-cus"><div>Tên khách hàng: ${esc(o.customerName&&o.customerName!=='Khách lẻ'?o.customerName:'')}</div><div>Địa chỉ: ${esc(o.customerAddress||'')}</div><div>Điện thoại: ${esc(o.phone||'')}</div></div>
   <table class="inv-t"><thead><tr><th style="width:6.5%">STT</th><th style="width:28.5%">Sản phẩm</th><th style="width:15%">Serial</th><th style="width:11%">Tình trạng</th><th style="width:10%">Bảo hành</th><th style="width:14%">Đơn giá</th><th style="width:15%">Thành tiền</th></tr></thead><tbody>${rows.join('')}</tbody>
-  <tfoot><tr><td colspan="6" class="r b">Tổng cộng:</td><td class="r b">${vnd(o.total)}</td></tr></tfoot></table>
+  <tfoot>${+o.discount?`<tr><td colspan="6" class="r">Cộng tiền hàng:</td><td class="r">${vnd(o.subtotal)}</td></tr><tr><td colspan="6" class="r">Khuyến mại${o.promo?' ('+esc(o.promo)+')':''}:</td><td class="r">-${vnd(o.discount)}</td></tr>`:''}<tr><td colspan="6" class="r b">Tổng cộng:</td><td class="r b">${vnd(o.total)}</td></tr></tfoot></table>
   <div class="inv-sign"><div></div><div><div>Ngày ${d.getDate()} tháng ${d.getMonth()+1} năm ${d.getFullYear()}</div><b>Người bán hàng</b><div class="nm">${esc(String(o.staff||'').toUpperCase())}</div></div></div></div>
   ${withPolicy&&st.invPolicy?`<div class="inv-page inv-policy">${policyHTML(st.invPolicy)}</div>`:''}`}
 function printInvoice(o,withPolicy){const a=$('#print-area');a.innerHTML=invoiceHTML(o,withPolicy);const done=()=>{a.innerHTML='';window.removeEventListener('afterprint',done)};window.addEventListener('afterprint',done);
   const imgs=[...a.querySelectorAll('img')];Promise.all(imgs.map(im=>im.complete?1:new Promise(r=>{im.onload=im.onerror=r}))).then(()=>setTimeout(()=>window.print(),50))}
 function receiptText(o){const st=SET();const L=[];L.push(st.name.toUpperCase(),st.address,'Hotline: '+st.phone,'----------------------------------','HÓA ĐƠN '+o.code,'Ngày: '+new Date(o.doneAt||o.createdAt).toLocaleString('vi-VN'),'Khách: '+(o.customerName||'Khách lẻ')+(o.phone?' – '+o.phone:''),'----------------------------------');
-  (o.items||[]).forEach(i=>{L.push(i.name+(i.qty>1?' x'+i.qty:''));if(i.imei)L.push('  IMEI: '+i.imei);if(i.warrantyMonths)L.push('  Bảo hành: '+i.warrantyMonths+' tháng');L.push('  '+money(i.price*(i.qty||1)))});
-  L.push('----------------------------------','TỔNG: '+money(o.total));if(o.deposit)L.push('Đã cọc: '+money(o.deposit),'Còn lại: '+money(o.total-o.deposit));if(o.pay)L.push('Thanh toán: '+o.pay);L.push('Nhân viên: '+(o.staff||''),'','Cảm ơn quý khách! Tra bảo hành online bằng SĐT.');return L.join('\n')}
+  (o.items||[]).forEach(i=>{L.push(i.name+(i.qty>1?' x'+i.qty:'')+(i.gift?' (Quà tặng)':''));if(i.imei)L.push('  IMEI: '+i.imei);if(i.warrantyMonths)L.push('  Bảo hành: '+i.warrantyMonths+' tháng');L.push('  '+money(i.price*(i.qty||1)))});
+  L.push('----------------------------------');if(+o.discount)L.push('Cộng tiền hàng: '+money(o.subtotal),'Khuyến mại'+(o.promo?' ('+o.promo+')':'')+': -'+money(o.discount));L.push('TỔNG: '+money(o.total));if(o.deposit)L.push('Đã cọc: '+money(o.deposit),'Còn lại: '+money(o.total-o.deposit));if(o.pay)L.push('Thanh toán: '+o.pay);L.push('Nhân viên: '+(o.staff||''),'','Cảm ơn quý khách! Tra bảo hành online bằng SĐT.');return L.join('\n')}
 
 /* ================= actions ================= */
 const ACT={
@@ -1033,13 +1041,15 @@ const ACT={
     else{const a=S.acc.find(i=>i.id===d.id);if(!a)return;const ex=S.cart.find(c=>c.refId===a.id);if(ex){if(ex.qty<(+a.qty||0))ex.qty++;else toast('Hết hàng trong kho')}else S.cart.push({kind:'acc',refId:a.id,name:a.name,imei:'',price:+a.price||0,cost:+a.cost||0,qty:1,warrantyMonths:0})}
     S.posQ='';render();const q=$('#q-pos');if(q)q.focus()},
   cartPkg:d=>{const p=pkgList()[+d.i];if(!p)return;S.cart.push({kind:'svc',refId:'',name:p.name,imei:'',price:p.price,cost:0,qty:1,warrantyMonths:p.months});render()},
+  cartGift:d=>{const c=S.cart[+d.i];if(!c)return;if(c.gift){c.gift=false;c.price=+c.origPrice||0}else{c.gift=true;c.origPrice=+c.price||0;c.price=0}render()},
+  posPromoPick:d=>{S.posCust.promo=d.n||'';S.posCust.disc=d.d||'';render()},
   cartDel:d=>{S.cart.splice(+d.i,1);render()},
   checkout:async()=>{if(!S.cart.length)return;
     for(const c of S.cart){if(c.kind==='phone'){const u=S.inv.find(x=>x.id===c.refId);if(!u||u.status!=='instock')return toast(c.name+' không còn trong kho')}}
-    const code=mkCode('HD');const items=S.cart.map(x=>({...x}));const total=items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);
-    const paidIn=String(S.posCust.paid||'').trim();const o={code,source:'store',customerName:S.posCust.name.trim()||'Khách lẻ',phone:normPhone(S.posCust.phone),customerAddress:(S.posCust.address||'').trim(),paid:paidIn===''?total:Math.min(total,num(paidIn)),pay:S.posCust.pay,items,total,deposit:0,status:'done',createdAt:now(),doneAt:now(),staff:S.staff,note:''};
+    const code=mkCode('HD');const items=S.cart.map(x=>({...x}));const subtotal=items.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const discount=discAmt(S.posCust.disc,subtotal);const total=Math.max(0,subtotal-discount);const promo=(S.posCust.promo||'').trim();
+    const paidIn=String(S.posCust.paid||'').trim();const o={code,source:'store',customerName:S.posCust.name.trim()||'Khách lẻ',phone:normPhone(S.posCust.phone),customerAddress:(S.posCust.address||'').trim(),paid:paidIn===''?total:Math.min(total,num(paidIn)),pay:S.posCust.pay,items,subtotal,discount,promo,total,deposit:0,status:'done',createdAt:now(),doneAt:now(),staff:S.staff,note:''};
     const ok=await W(async()=>{await col('orders').doc(code).set(o);await applyDone(items,code)},'Đã bán xong');
-    if(ok){S.cart=[];S.posCust={name:'',phone:'',address:'',paid:'',pay:'Tiền mặt'};render();ACT.receipt({o})}},
+    if(ok){S.cart=[];S.posCust={name:'',phone:'',address:'',paid:'',pay:'Tiền mặt',disc:'',promo:''};render();ACT.receipt({o})}},
   invForm:d=>{const x=d.id?S.inv.find(i=>i.id===d.id):null;S.formImgs=unitImgs(x).slice();S.formOrig=S.formImgs.slice();openModal(invFormHTML(x));renderFormImgs()},
   invSortBy:d=>{if(S.invSK===d.k)S.invSD=S.invSD==='asc'?'desc':'asc';else{S.invSK=d.k;S.invSD=['name','imei','cond','status'].includes(d.k)?'asc':'desc'}render()},
   invSame:d=>{const x=S.inv.find(i=>i.id===d.id);if(!x)return;S.invGroup='';S.invF={...S.invF,model:x.model,storage:x.storage||'',color:x.color||''};render()},
@@ -1095,7 +1105,7 @@ const FORM={
   ordReturn:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;const items=(o.items||[]).map(it=>({...it}));const ri=[];let sum=0;
     items.forEach((it,i)=>{if(!v['r'+i])return;const rq=remQ(it);if(rq<=0)return;const q=Math.min(rq,Math.max(1,Math.round(+v['q'+i]||rq)));ri.push({i,qty:q,restock:it.kind!=='svc'&&!!v['k'+i]});it.retQty=retQ(it)+q;sum+=(+it.price||0)*q});
     if(!ri.length)return toast('Chọn ít nhất một món khách trả');
-    const refund=String(v.refund||'').trim()?num(v.refund):sum;
+    const ratio=+o.subtotal?Math.max(0,Math.min(1,(+o.total||0)/(+o.subtotal))):1;const refund=String(v.refund||'').trim()?num(v.refund):Math.round(sum*ratio);
     const rt={at:now(),staff:S.staff||'',items:ri,refund,reason:String(v.reason||'').trim().slice(0,200)};
     const all=items.every(it=>remQ(it)<=0);
     const ok=await W(async()=>{await col('orders').doc(o.id).update({items,returns:[...(o.returns||[]),rt],refundTotal:(+o.refundTotal||0)+refund,status:all?'returned':'done'});
@@ -1180,6 +1190,8 @@ const CHG={
   originNet:el=>{const s=$('#f-net');if(s&&!s.value){const g=guessNet(el.value);if(g)s.value=g}},
   role:el=>{S.preview=el.value;try{sessionStorage.setItem('snt-preview',S.preview)}catch(e){}applyAuth();render()},
   posPay:el=>{S.posCust.pay=el.value},
+  posPromo:el=>{S.posCust.promo=el.value;render()},
+  posDisc:el=>{S.posCust.disc=el.value;render()},
   cartPrice:el=>{const c=S.cart[+el.dataset.i];if(c){c.price=num(el.value);render()}},
   impTarget:el=>{if(S.imp){S.imp.target=el.value;if(S.imp.headers)S.imp.map=guessMap(S.imp.headers,el.value)}else S.imp={target:el.value};render()},
   impSheet:el=>{loadSheet(el.value);render()},
