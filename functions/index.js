@@ -158,6 +158,8 @@ exports.placeDeposit = onCall(async (req) => {
 exports.placeCart = onCall(async (req) => {
   const d = req.data || {};
   const name = needName(d.name), phone = needPhone(d.phone), note = str(d.note, 300);
+  const delivery = d.ship === 'delivery' ? 'delivery' : 'pickup', address = str(d.address, 250);
+  if (delivery === 'delivery' && address.length < 8) throw new HttpsError('invalid-argument', 'Bạn nhập địa chỉ giao hàng đầy đủ giúp shop nhé.');
   const list = Array.isArray(d.items) ? d.items.slice(0, 30) : [];
   if (!list.length) throw new HttpsError('invalid-argument', 'Giỏ hàng đang trống.');
   const st = await settings();
@@ -184,7 +186,7 @@ exports.placeCart = onCall(async (req) => {
     if (!items.length) throw new HttpsError('invalid-argument', 'Giỏ hàng đang trống.');
     const total = items.reduce((s2, i) => s2 + i.price * i.qty, 0);
     const deposit = per * us.length;
-    tx.set(db.doc('orders/' + code), { code, source: 'web', customerName: name, phone, note, items, total, deposit, status: 'pending', createdAt: now() });
+    tx.set(db.doc('orders/' + code), { code, source: 'web', customerName: name, phone, note, delivery, customerAddress: delivery === 'delivery' ? address : '', items, total, deposit, status: 'pending', createdAt: now() });
     us.forEach((u) => tx.update(u.ref, { status: 'reserved', orderCode: code }));
     out = { code, deposit };
   });
