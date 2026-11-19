@@ -1,0 +1,34 @@
+name: Xuất dữ liệu xem trước
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --prefix functions --omit=dev --no-audit --no-fund
+      - name: Xuất
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" node scripts/export-public.js
+          rm -f "$RUNNER_TEMP/sa.json"
+          mkdir -p imgs
+          node -e "const d=require('./public-data.json');const u=new Set();for(const c of ['inventory','accessories','photos'])for(const x of d[c]){const a=(x.imgs&&x.imgs.length?[x.imgs[0]]:[]).concat(x.img?[x.img]:[]).concat(x.url?[x.url]:[]);a.forEach(v=>{if(/^https?:/.test(v))u.add(v)})}require('fs').writeFileSync('urls.txt',[...u].join('\n'))"
+          i=0; while read -r url; do [ -z "$url" ] && continue; i=$((i+1)); curl -sSL "$url" -o "imgs/raw$i" && echo "$i $url" >> imgs/map.txt; done < urls.txt
+          sudo apt-get -qq install -y webp >/dev/null 2>&1 || true
+          for f in imgs/raw*; do [ -f "$f" ] && convert "$f" -auto-orient -resize 480x480\> -quality 70 "${f/raw/i}.jpg" 2>/dev/null; rm -f "$f"; done
+          ls imgs | head
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-data
+          path: |
+            public-data.json
+            imgs/
+          retention-days: 1
