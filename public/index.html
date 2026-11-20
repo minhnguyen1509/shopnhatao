@@ -380,6 +380,8 @@ function render(){
   const ae=document.activeElement,aid=ae&&ae.id&&$('#app').contains(ae)?ae.id:null;let ss,se;try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
   const asd=$('.adm aside'),asl=asd?asd.scrollLeft:0;
   const bnPos={};document.querySelectorAll('[data-bn]').forEach(t=>bnPos[t.id]=t.scrollLeft);
+  const live=S._live;S._live=false;
+  if(live&&aid&&ae.dataset&&ae.dataset.live){const t=document.createElement('div');t.innerHTML=S.view==='admin'?adminHTML():shopHTML();morphKids($('#app'),t,ae);for(const k in bnPos){const t2=document.getElementById(k);if(t2)t2.scrollLeft=bnPos[k]}return}
   $('#app').innerHTML=S.view==='admin'?adminHTML():shopHTML();
   {const as=$('.adm aside');if(as&&as.scrollWidth>as.clientWidth){as.scrollLeft=asl;const on=as.querySelector('.tab.on');if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<as.scrollLeft||r>as.scrollLeft+as.clientWidth)as.scrollLeft=Math.max(0,l-as.clientWidth/2+on.offsetWidth/2)}}}
   $('#dl-models').innerHTML=[...new Set([...S.inv.map(x=>x.model),...S.svc.map(x=>x.model)].filter(Boolean))].sort().map(m=>`<option value="${esc(m)}">`).join('');
@@ -387,6 +389,14 @@ function render(){
   for(const k in bnPos){const t=document.getElementById(k);if(t){t.scrollLeft=bnPos[k];bnSync(t)}}
   if(aid){const el=document.getElementById(aid);if(el){el.focus();try{if(ss!=null)el.setSelectionRange(ss,se)}catch(e){}}}
 }
+function morphKids(o,n,ae){const a=[...o.childNodes],b=[...n.childNodes];const m=Math.min(a.length,b.length);
+  for(let i=0;i<m;i++)morphNode(a[i],b[i],ae);for(let i=m;i<b.length;i++)o.appendChild(b[i]);for(let i=m;i<a.length;i++)a[i].remove()}
+function morphNode(o,n,ae){if(o.nodeType!==n.nodeType||o.nodeName!==n.nodeName||(o.id||'')!==(n.id||'')){if(o!==ae&&!(o.contains&&o.contains(ae)))o.replaceWith(n);return}
+  if(o.nodeType===3||o.nodeType===8){if(o.data!==n.data)o.data=n.data;return}if(o.nodeType!==1)return;if(o===ae)return;
+  for(const at of [...o.attributes])if(!n.hasAttribute(at.name))o.removeAttribute(at.name);for(const at of n.attributes)if(o.getAttribute(at.name)!==at.value)o.setAttribute(at.name,at.value);
+  const tg=o.nodeName;if(tg==='INPUT'){if(o.type==='checkbox'||o.type==='radio')o.checked=n.checked;else if(o.value!==n.value)o.value=n.value;return}if(tg==='TEXTAREA'){if(o.value!==n.value)o.value=n.value;return}
+  if(o.innerHTML===n.innerHTML){if(tg==='SELECT'&&o.value!==n.value)o.value=n.value;return}
+  morphKids(o,n,ae);if(tg==='SELECT')o.value=n.value}
 function modebar(){return ''}
 
 /* ================= visuals ================= */
@@ -1431,7 +1441,7 @@ $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()})
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 document.addEventListener('submit',async e=>{const f=e.target.closest('form[data-form]');if(!f)return;e.preventDefault();const btn=f.querySelector('button:not([type=button])');if(btn)btn.disabled=true;try{await FORM[f.dataset.form](Object.fromEntries(new FormData(f)),f)}finally{if(btn&&document.contains(btn))btn.disabled=false}});
 document.addEventListener('input',e=>{const el=e.target;if(false){const q=el.value;U.search(q).then(hits=>{const box=$('#st-res');if(!box||$('#st-q').value!==q)return;box.innerHTML='';hits.forEach(hh=>{const b=document.createElement('button');b.type='button';b.className='btn sm';b.style.justifyContent='flex-start';b.dataset.act='pickAcc';b.dataset.id=hh.id;b.dataset.name=hh.name;b.textContent=hh.name+(hh.email?' · '+hh.email:'');box.appendChild(b)});if(!hits.length&&q)box.innerHTML='<span class="muted" style="font-size:13px">Không tìm thấy. Nhân viên đã được mời qua Share chưa?</span>'})}else if(el.dataset.live){S[el.dataset.live]=el.value;if(e.isComposing)return;liveRender()}else if(el.dataset.bind){const [a,b]=el.dataset.bind.split('.');S[a][b]=el.value}});
-let _lt;function liveRender(){clearTimeout(_lt);_lt=setTimeout(schedule,160)}
+let _lt;function liveRender(){clearTimeout(_lt);_lt=setTimeout(()=>{S._live=true;schedule()},matchMedia('(pointer:coarse)').matches?260:160)}
 document.addEventListener('compositionend',e=>{const el=e.target;if(el&&el.dataset&&el.dataset.live){S[el.dataset.live]=el.value;liveRender()}});
 document.addEventListener('change',e=>{const el=e.target;if(el.dataset.chg&&CHG[el.dataset.chg])CHG[el.dataset.chg](el)});
 function renderFormImgs(){const el=$('#f-imgs');if(!el)return;const a=S.formImgs||[];
