@@ -457,6 +457,7 @@ function bnSync(t){const i=bnIdx(t);const d=t.parentNode.querySelectorAll('.bn-d
 setInterval(()=>{if(document.hidden)return;document.querySelectorAll('[data-bn]').forEach(t=>{if(t._hold&&Date.now()-t._hold<6000)return;const n=t.children.length;if(n<2||!t.offsetParent)return;const i=(bnIdx(t)+1)%n;t.scrollTo({left:i*t.clientWidth,behavior:'smooth'})})},4500);
 document.addEventListener('scroll',e=>{const t=e.target;if(t&&t.dataset&&t.dataset.bn!=null){bnSync(t)}},true);
 ['touchstart','pointerdown','wheel'].forEach(ev=>document.addEventListener(ev,e=>{const t=e.target.closest&&e.target.closest('[data-bn]');if(t)t._hold=Date.now()},{passive:true}));
+const itemSrc=(o,it,i)=>{const cm=S.costMap||{};const c=cm['ord-'+o.id];const s=c&&Array.isArray(c.src)?c.src[i]:'';return s||(it.kind==='phone'&&it.refId?((cm['inv-'+it.refId]||{}).source||''):'')};
 const ordX=o=>{const c=(S.costMap||{})['ord-'+o.id];return c&&Array.isArray(c.extra)?c.extra:[]};const isStaffX=x=>x.kind==='staff'||x.label==='Nhân viên';
 const ordExtra=o=>ordX(o).reduce((s,x)=>s+(+x.amount||0),0),ordComm=o=>ordX(o).filter(isStaffX).reduce((s,x)=>s+(+x.amount||0),0);
 function ordProfit(o){const rev=(o.items||[]).reduce((s,it)=>s+(+it.price||0)*(+it.qty||1),0)-(+o.discount||0)-(+o.refundTotal||0);const cogs=(o.items||[]).reduce((s,it)=>s+unitCost(it)*remQ(it),0);const ex=ordExtra(o);return {rev,cogs,ex,profit:rev-cogs-ex}}
@@ -1189,7 +1190,7 @@ const ACT={
     ${o.status==='done'||o.status==='returned'?`<div><label>Ngày bán</label><input name="doneDate" type="date" value="${dd}"></div>`:''}${o.source==='web'?`<div><label>Tiền cọc</label><input name="deposit" inputmode="numeric" value="${+o.deposit||0}"></div>`:''}
     <div class="full"><label>Ghi chú</label><input name="note" value="${esc(o.note||'')}"></div></div>
     <h3 style="margin:16px 0 6px">Sản phẩm</h3><div class="ret-list" style="margin-top:0">${its.map((it,i)=>`<div class="ret-it"><div class="fgrid" style="margin:0"><div class="full"><label>Tên sản phẩm${it.gift?' (quà tặng)':''}${retQ(it)?` · đã trả ${retQ(it)}`:''}</label><input name="n${i}" value="${esc(it.name||'')}"></div>
-      ${it.kind==='svc'?'':`<div><label>Serial/IMEI</label><input name="s${i}" value="${esc(it.imei||'')}"></div><div><label>Tình trạng</label><input name="c${i}" value="${esc(it.cond||'')}" placeholder="${esc(itemCond(it))}"></div>`}
+      ${it.kind==='svc'?'':`<div><label>Serial/IMEI</label><input name="s${i}" value="${esc(it.imei||'')}"></div><div><label>Tình trạng</label><input name="c${i}" value="${esc(it.cond||'')}" placeholder="${esc(itemCond(it))}"></div>${isOwner()?`<div class="full"><label>Nguồn nhập hàng <span class="muted" style="font-weight:400">🔒 chỉ chủ shop thấy</span></label><input name="src${i}" list="dl-source" value="${esc(itemSrc(o,it,i))}" placeholder="VD: Thu cũ của khách, mối buôn…"></div>`:''}`}
       <div><label>Bảo hành (tháng)</label><input name="w${i}" inputmode="numeric" value="${+it.warrantyMonths||0}"></div><div><label>Đơn giá${(+it.qty||1)>1?' (×'+it.qty+')':''}</label><input name="p${i}" inputmode="numeric" value="${+it.price||0}"></div></div></div>`).join('')}</div>
     ${isOwner()?(()=>{const c=(S.costMap||{})['ord-'+o.id]||{};const all=(c.extra||[]).slice();const si=all.findIndex(x=>x.kind==='staff'||x.label==='Nhân viên');const stf=si>=0?all.splice(si,1)[0]:{amount:''};const ex=all;while(ex.length<3)ex.push({label:'',amount:''});const P=ordProfit(o);
       return `<div class="own-box"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:6px"><b>Chi phí của đơn</b><span class="muted" style="font-size:12px">🔒 Chỉ chủ shop thấy</span></div>
@@ -1330,7 +1331,9 @@ const FORM={
     if(v.doneDate){const [y,m,dd]=v.doneDate.split('-').map(Number);const old=new Date((o.doneAt||now())+7*3600e3);const t=Date.UTC(y,m-1,dd,old.getUTCHours(),old.getUTCMinutes())-7*3600e3;if(t&&Math.abs(t-(o.doneAt||0))>60000)d.doneAt=t}
     if(o.paid!=null&&+o.paid===+o.total)d.paid=total;
     let extra=null;if(isOwner()){extra=[{label:'Nhân viên',kind:'staff',staff:String(v.xsn||'').trim()||d.staff||'',amount:num(v.xs)}];for(let i=0;i<8;i++){const l=String(v['xl'+i]||'').trim(),a=num(v['xa'+i]);if(l||a)extra.push({label:l||'Chi phí',amount:a})}}
-    const ok=await W(async()=>{await col('orders').doc(o.id).update(d);if(extra)await DB.doc('costs/ord-'+o.id).set({extra,orderCode:o.code,updatedAt:now()},{merge:true})},'Đã lưu đơn '+o.code);if(ok)closeModal()},
+    let src=null;if(isOwner())src=items.map((it,i)=>v['src'+i]!=null?String(v['src'+i]).trim():itemSrc(o,it,i));
+    const ok=await W(async()=>{await col('orders').doc(o.id).update(d);if(extra)await DB.doc('costs/ord-'+o.id).set({extra,...(src?{src}:{}),orderCode:o.code,updatedAt:now()},{merge:true});
+      if(src)for(let i=0;i<items.length;i++){const it=items[i];if(it.kind==='phone'&&it.refId&&src[i]&&S.inv.some(u=>u.id===it.refId)&&src[i]!==((S.costMap||{})['inv-'+it.refId]||{}).source)await DB.doc('costs/inv-'+it.refId).set({source:src[i]},{merge:true})}},'Đã lưu đơn '+o.code);if(ok)closeModal()},
   ordReturn:async v=>{const o=S.orders.find(x=>x.id===v.id);if(!o)return;const items=(o.items||[]).map(it=>({...it}));const ri=[];let sum=0;
     items.forEach((it,i)=>{if(!v['r'+i])return;const rq=remQ(it);if(rq<=0)return;const q=Math.min(rq,Math.max(1,Math.round(+v['q'+i]||rq)));ri.push({i,qty:q,restock:it.kind!=='svc'&&!!v['k'+i]});it.retQty=retQ(it)+q;sum+=(+it.price||0)*q});
     if(!ri.length)return toast('Chọn ít nhất một món khách trả');
