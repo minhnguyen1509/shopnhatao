@@ -687,7 +687,7 @@ function aPos(){
   }
   const sub=S.cart.reduce((s,i)=>s+(+i.price||0)*(+i.qty||1),0);const disc=discAmt(S.posCust.disc,sub);const total=Math.max(0,sub-disc);
   return hd('Bán tại quầy','Quét hoặc gõ IMEI, tên máy, tên phụ kiện để thêm vào đơn. Bán xong máy tự trừ khỏi kho và bắt đầu tính bảo hành.')+
-  `<div class="pos"><div><div class="panel" style="padding:14px"><input id="q-pos" data-live="posQ" placeholder="IMEI, 15 Pro Max, sạc 20W…" value="${esc(S.posQ)}"></div>
+  `<div class="pos"><div><div class="panel" style="padding:14px"><input id="q-pos" data-live="posQ" placeholder="IMEI, 15 Pro Max, sạc 20W…" value="${esc(S.posQ)}">${W_OK()?`<div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sm" data-act="invForm">+ Thêm sản phẩm</button><button class="btn sm" data-act="accForm">+ Thêm phụ kiện</button><span class="muted" style="font-size:12px">Hàng chưa có trong kho? Nhập luôn ở đây rồi bán.</span></div>`:''}</div>
     ${(()=>{const sg=accSuggest();return sg.length?`<div class="panel" style="padding:10px 14px;margin-top:10px"><div class="muted" style="font-size:12px;margin-bottom:6px">Gợi ý phụ kiện cho máy trong đơn</div><div class="chips">${sg.map(a=>`<button class="chip" style="font-size:13px;padding:5px 12px" data-act="cartAdd" data-k="acc" data-id="${esc(a.id)}">+ ${esc(a.name)}${+a.price?' · '+money(a.price):''}</button>`).join('')}</div></div>`:''})()}
     <div class="tbl-wrap" style="margin-top:10px">${q?(res.join('')||'<div class="empty" style="border:0">Không tìm thấy hàng trong kho.</div>'):'<div class="empty" style="border:0">Gõ để tìm hàng trong kho.</div>'}</div></div>
   <div class="panel"><h3>Đơn đang bán</h3>
@@ -1375,9 +1375,9 @@ const FORM={
       const dupIn=imeis.find((s,i)=>imeis.indexOf(s)!==i);if(dupIn)return toast('IMEI '+dupIn+' bị nhập trùng 2 lần');
       const dupKho=imeis.find(s=>S.inv.some(x=>x.imei===s));if(dupKho)return toast('IMEI '+dupKho+' đã có trong kho');
       const ok=await W(async()=>{for(let i=0;i<n;i+=5)await Promise.all(Array.from({length:Math.min(5,n-i)},(_,j)=>putDoc('inventory',col('inventory').doc(),{...d,imei:imeis[i+j]||''},'set')))},n>1?`Đã nhập ${n} máy vào kho`:'Đã nhập kho');
-      if(ok){closeModal();if(n>imeis.length&&n>1)setTimeout(()=>toast(`${n-imeis.length} máy chưa có IMEI, nhớ bổ sung ở nút Sửa`),2700)}}},
+      if(ok){closeModal();if(S.tab==='pos'){S.posQ=imeis[0]||`${d.model} ${d.storage||''} ${d.color||''}`.trim();render();toast('Đã nhập kho, bấm "Thêm" để đưa vào đơn')}if(n>imeis.length&&n>1)setTimeout(()=>toast(`${n-imeis.length} máy chưa có IMEI, nhớ bổ sung ở nút Sửa`),2700)}}},
   acc:async v=>{const d={name:v.name.trim(),category:v.category,qty:num(v.qty),price:num(v.price)};if(v.cost!=null)d.cost=num(v.cost);if(ASSETS&&Array.isArray(S.formImgs)){d.imgs=S.formImgs.slice();d.img=''}
-    if(await W(()=>v.id?putDoc('accessories',col('accessories').doc(v.id),d,'update'):putDoc('accessories',col('accessories').doc(),{cost:0,...d},'set'),'Đã lưu'))closeModal()},
+    if(await W(()=>v.id?putDoc('accessories',col('accessories').doc(v.id),d,'update'):putDoc('accessories',col('accessories').doc(),{cost:0,...d},'set'),'Đã lưu')){closeModal();if(!v.id&&S.tab==='pos'){S.posQ=d.name;render();toast('Đã thêm phụ kiện, bấm "Thêm" để đưa vào đơn')}}},
   svc:async v=>{const d={model:v.model.trim(),category:v.category,name:v.name.trim(),price:num(v.price),time:v.time.trim()};
     if(await W(()=>v.id?col('services').doc(v.id).update(d):col('services').doc().set(d),'Đã lưu'))closeModal()},
   rep:async v=>{const d={customerName:v.customerName.trim(),phone:normPhone(v.phone),device:v.device.trim(),imei:v.imei.trim(),issue:v.issue.trim(),kind:v.kind,partner:v.partner.trim(),quote:num(v.quote),cost:num(v.cost),note:v.note.trim()};
