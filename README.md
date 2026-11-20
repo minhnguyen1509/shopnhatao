@@ -23,3 +23,8 @@ Website bán hàng cho khách + trang quản trị nội bộ (kho máy theo IME
 
 ## Deploy
 Push lên nhánh `main` → GitHub Actions tự deploy. Cần secret `FIREBASE_SERVICE_ACCOUNT` (nội dung file JSON khóa dịch vụ).
+
+## Thư viện bên thứ ba
+
+- Xóa phông ảnh sản phẩm: [@imgly/background-removal](https://github.com/imgly/background-removal-js) (AGPL-3.0), tải từ CDN khi dùng. Mã nguồn web này công khai tại repo này.
+- Đọc ảnh HEIC: heic-to, heic2any.
