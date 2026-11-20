@@ -1466,7 +1466,7 @@ function fnErr(e){console.warn(e);const m=e&&e.message&&!/internal/i.test(e.mess
 const FSAssets={upload:async(blob)=>{const ext=(blob.type||'image/jpeg').split('/')[1].replace('jpeg','jpg');const ref=fst.ref('products/'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)+'.'+ext);
     await ref.put(blob,{contentType:blob.type||'image/jpeg',cacheControl:'public,max-age=31536000'});const url=await ref.getDownloadURL();return {id:url,url}},
   delete:async(id)=>{try{if(/^https?:/.test(id))await fst.refFromURL(id).delete()}catch(e){console.warn(e)}return {deleted:true}}};
-function imgUrl(id){return /^(https?:|data:|blob:|\/)/.test(String(id||''))?id:''}
+const IMG_V='2';function imgUrl(id){const s=String(id||'');if(/^\/img\//.test(s))return s+(s.includes('?')?'&':'?')+'v='+IMG_V;return /^(https?:|data:|blob:|\/)/.test(s)?s:''}
 
 const PUBLIC_COLS=['inventory','accessories','services','photos'];
 const STAFF_COLS=['orders','repairs','staff','shifts'];
