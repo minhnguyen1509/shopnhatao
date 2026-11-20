@@ -161,7 +161,7 @@ footer.sh-foot{border-top:1px solid var(--line);padding:24px 0 90px;color:var(--
 .adm aside .who{margin-top:auto;padding:12px 8px 0;border-top:1px solid #ffffff1a;font-size:12px;color:#A99F92}
 .adm aside .who select{background:#ffffff12;border-color:#ffffff22;color:#fff;margin-top:6px}
 .adm aside .who select option{color:#000}
-.adm main{padding:24px 28px 60px;min-width:0}
+.adm main{padding:24px 28px 60px;min-width:0}.adm main .cols2>*,.adm main .cols3>*,.adm main .kpis>*,.adm main .pos>*,.adm main .fgrid>*{min-width:0}.adm main .bars .m,.adm main .bars .pair>*{min-width:0}.lbls{display:flex;gap:8px;padding:0 4px}.lbls>*{min-width:0}@media (max-width:600px){.adm main .bars,.lbls{gap:3px}.adm main .bars .pair{gap:2px}.lbls .lbl{font-size:10px!important}}@media (max-width:900px){.adm main{overflow-x:hidden}}
 .adm h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
 .adm .hd{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:18px;flex-wrap:wrap}
 .kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:20px}
@@ -634,7 +634,7 @@ function aDash(){
     <div class="kpi"><small>Phiếu sửa đang mở</small><b>${reps.length}</b><span>${reps.filter(r=>r.status==='ready').length} máy chờ khách lấy</span></div>
   </div>
   <div class="cols2">
-    <div><div class="list-h"><h3>Đơn online cần xử lý</h3><button class="btn sm ghost" data-act="tab" data-v="orders">Xem tất cả</button></div>${ordTable(pend.slice(0,6),true)}</div>
+    <div><div class="list-h"><h3>Đơn cần xử lý</h3><button class="btn sm ghost" data-act="tab" data-v="orders">Xem tất cả</button></div>${ordTable(pend.slice(0,6),true)}</div>
     <div><div class="list-h"><h3>Máy đang sửa</h3><button class="btn sm ghost" data-act="tab" data-v="rep">Xem tất cả</button></div>${repTable(reps.slice(0,6),true)}</div>
   </div>
   <div class="cols2" style="margin-top:16px">
@@ -912,7 +912,7 @@ function aRpt(){
   ${PR.m!=='day'&&Object.keys(sub).length?`<div class="panel" style="margin-bottom:16px"><h3>Chi tiết theo ${PR.m==='year'?'tháng':'ngày'} · ${PR.label}</h3><div class="tbl-wrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>${PR.m==='year'?'Tháng':'Ngày'}</th><th class="num">Doanh thu</th><th class="num">Giá vốn & chi phí</th><th class="num">Hoa hồng NV</th><th class="num">Lãi shop</th></tr></thead><tbody>${Object.keys(sub).sort().reverse().map(k=>{const r=sub[k];return `<tr><td>${k.split('-').reverse().join('/')}</td><td class="num">${money(r.rev)}</td><td class="num">${money(r.cost)}</td><td class="num">${money(r.comm)}</td><td class="num"><b>${money(r.rev-r.cost-r.comm)}</b></td></tr>`}).join('')}</tbody><tfoot><tr><td><b>Tổng</b></td><td class="num"><b>${money(P.rev)}</b></td><td class="num"><b>${money(P.cost)}</b></td><td class="num"><b>${money(P.comm)}</b></td><td class="num"><b>${money(P.rev-P.cost-P.comm)}</b></td></tr></tfoot></table></div></div>`:''}
   <div class="cols2"><div class="panel"><h3>12 tháng gần nhất</h3>
     <div class="bars">${rows.map(r=>`<div class="m"><div class="pair"><div class="b" style="height:${r.rev/max*100}%;background:var(--ink)" title="Doanh thu ${money(r.rev)}"></div><div class="b" style="height:${Math.max(0,r.rev-r.cost-r.comm)/max*100}%;background:var(--red)" title="Lãi shop ${money(r.rev-r.cost-r.comm)}"></div></div></div>`).join('')}</div>
-    <div style="display:flex;gap:18px;padding:0 4px">${rows.map(r=>`<div class="lbl" style="flex:1;text-align:center;font-size:12px;color:var(--muted);padding-top:6px">T${+r.k.slice(5)}</div>`).join('')}</div>
+    <div class="lbls">${rows.map(r=>`<div class="lbl" style="flex:1;text-align:center;font-size:12px;color:var(--muted);padding-top:6px">T${+r.k.slice(5)}</div>`).join('')}</div>
     <div class="legend"><span><i style="background:var(--ink)"></i>Doanh thu</span><span><i style="background:var(--red)"></i>Lãi shop</span></div>
   </div>
   <div class="panel"><h3>Máy bán chạy · ${PR.label}</h3>${topL.length?`<table><tbody>${topL.map(([m,n])=>`<tr><td>${esc(m)}</td><td class="num"><b>${n}</b> máy</td></tr>`).join('')}</tbody></table>`:'<p class="muted">Chưa có dữ liệu.</p>'}</div></div>
