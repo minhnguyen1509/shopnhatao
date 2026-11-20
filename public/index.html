@@ -1022,7 +1022,7 @@ function accFormHTML(a){a=a||{category:'Sạc'};return `<h2>${a.id?'Sửa phụ 
   <div class="full"><label>Tên *</label><input name="name" required value="${esc(a.name||'')}"></div>
   <div class="full"><label>Ảnh phụ kiện</label>${ASSETS?`<div class="muted" style="font-size:12px;margin-bottom:6px">Có thể chọn nhiều ảnh, hoặc copy ảnh ở chỗ khác rồi bấm ⌘/Ctrl+V để dán. Bấm vào ảnh để đặt làm <b>ảnh chính</b> (hiện ngoài website). Không có ảnh thì web hiện biểu tượng theo loại.</div><div id="f-imgs"></div><button type="button" class="btn sm" style="margin-top:8px" data-act="formPick">+ Thêm ảnh</button><button type="button" class="btn sm ghost mob-paste" style="margin:8px 0 0 6px" data-act="pastePhoto" data-kind="form">📋 Dán ảnh</button>`:`<div class="muted" style="font-size:13px">Chỉ tài khoản có quyền chỉnh sửa mới tải ảnh được.</div>`}</div>
   <div><label>Loại</label><select name="category">${ACC_CATS.map(c=>`<option ${a.category===c?'selected':''}>${c}</option>`).join('')}</select></div>
-  <div><label>Số lượng tồn</label><input name="qty" inputmode="numeric" value="${esc(a.qty??0)}"></div>
+  <div><label>Số lượng tồn</label><input name="qty" inputmode="numeric" value="${esc(a.qty??(S.tab==='pos'?1:0))}"></div>
   ${isOwner()?`<div><label>Giá nhập</label><input name="cost" inputmode="numeric" value="${esc(a.cost??'')}"></div>`:''}
   <div><label>Giá bán *</label><input name="price" inputmode="numeric" required value="${esc(a.price??'')}"></div>
   </div><div class="foot"><button type="button" class="btn ghost" data-act="close">Hủy</button><button class="btn btn-red">Lưu</button></div></form>`}
@@ -1321,6 +1321,7 @@ async function impOrders(){const I=S.imp;const rows=I.rows.map(r=>mapRow(r,'ord'
   const res=await W(async()=>{for(let i=0;i<docs.length;i+=5){await Promise.all(docs.slice(i,i+5).map(async({id,o,hhSum})=>{const costs=[];o.items.forEach(it=>{if(it._cost)costs.push([(it.kind==='phone'?'inv-':'acc-')+it.refId,it.kind==='phone'?{costPrice:it._cost}:{cost:it._cost}]);delete it._cost;delete it.cost});
       await col('orders').doc(id).set(o);if(isOwner()){for(const [cid,c] of costs)await DB.doc('costs/'+cid).set(c);if(hhSum)await DB.doc('costs/ord-'+id).set({extra:Object.entries(hhSum).map(([n,a])=>({label:'Nhân viên',kind:'staff',staff:n||o.staff||'',amount:a})),orderCode:o.code,updatedAt:now()},{merge:true})}}));I.done=Math.min(docs.length,i+5);schedule()}});
   I.busy=false;I.result=res?`Đã nhập ${docs.length} đơn (${ok.length} dòng)${skipped?`, bỏ qua ${skipped} dòng thiếu ngày, tên sản phẩm hoặc giá`:''}. Nhập lại cùng file sẽ ghi đè, không bị trùng.`:'Nhập bị dừng giữa chừng, kiểm tra lại rồi thử lại.';render()}
+async function posAddNew(k,id){for(let t=0;t<30;t++){const L=k==='phone'?S.inv:S.acc;const x=L.find(i=>i.id===id);if(x&&(k==='phone'?x.status==='instock':(+x.qty||0)>0)){ACT.cartAdd({k,id});S.posQ='';render();return toast('Đã thêm vào đơn đang bán')}await new Promise(r=>setTimeout(r,200))}toast('Đã lưu vào kho, tìm và bấm "Thêm" để đưa vào đơn')}
 async function applyDone(items,code){for(const it of items){if(it.kind==='svc')continue;if(it.kind==='phone')await safeUpd('inventory',it.refId,{status:'sold',soldAt:now(),orderCode:code});else{const a=S.acc.find(x=>x.id===it.refId);if(a)await safeUpd('accessories',a.id,{qty:Math.max(0,(+a.qty||0)-(+it.qty||1))})}}}
 
 const num=v=>{const n=+String(v??'').replace(/[^\d]/g,'');return isNaN(n)?0:n};
@@ -1374,10 +1375,11 @@ const FORM={
       const n=Math.max(1,Math.min(200,Math.max(num(v.qty)||1,imeis.length)));
       const dupIn=imeis.find((s,i)=>imeis.indexOf(s)!==i);if(dupIn)return toast('IMEI '+dupIn+' bị nhập trùng 2 lần');
       const dupKho=imeis.find(s=>S.inv.some(x=>x.imei===s));if(dupKho)return toast('IMEI '+dupKho+' đã có trong kho');
-      const ok=await W(async()=>{for(let i=0;i<n;i+=5)await Promise.all(Array.from({length:Math.min(5,n-i)},(_,j)=>putDoc('inventory',col('inventory').doc(),{...d,imei:imeis[i+j]||''},'set')))},n>1?`Đã nhập ${n} máy vào kho`:'Đã nhập kho');
-      if(ok){closeModal();if(S.tab==='pos'){S.posQ=imeis[0]||`${d.model} ${d.storage||''} ${d.color||''}`.trim();render();toast('Đã nhập kho, bấm "Thêm" để đưa vào đơn')}if(n>imeis.length&&n>1)setTimeout(()=>toast(`${n-imeis.length} máy chưa có IMEI, nhớ bổ sung ở nút Sửa`),2700)}}},
+      const refs=Array.from({length:n},()=>col('inventory').doc());
+      const ok=await W(async()=>{for(let i=0;i<n;i+=5)await Promise.all(Array.from({length:Math.min(5,n-i)},(_,j)=>putDoc('inventory',refs[i+j],{...d,imei:imeis[i+j]||''},'set')))},n>1?`Đã nhập ${n} máy vào kho`:'Đã nhập kho');
+      if(ok){closeModal();if(S.tab==='pos')posAddNew('phone',refs[0].id);if(n>imeis.length&&n>1)setTimeout(()=>toast(`${n-imeis.length} máy chưa có IMEI, nhớ bổ sung ở nút Sửa`),2700)}}},
   acc:async v=>{const d={name:v.name.trim(),category:v.category,qty:num(v.qty),price:num(v.price)};if(v.cost!=null)d.cost=num(v.cost);if(ASSETS&&Array.isArray(S.formImgs)){d.imgs=S.formImgs.slice();d.img=''}
-    if(await W(()=>v.id?putDoc('accessories',col('accessories').doc(v.id),d,'update'):putDoc('accessories',col('accessories').doc(),{cost:0,...d},'set'),'Đã lưu')){closeModal();if(!v.id&&S.tab==='pos'){S.posQ=d.name;render();toast('Đã thêm phụ kiện, bấm "Thêm" để đưa vào đơn')}}},
+    if(await W(()=>v.id?putDoc('accessories',col('accessories').doc(v.id),d,'update'):putDoc('accessories',(S._accRef=col('accessories').doc()),{cost:0,...d},'set'),'Đã lưu')){closeModal();if(!v.id&&S.tab==='pos'&&S._accRef)posAddNew('acc',S._accRef.id)}},
   svc:async v=>{const d={model:v.model.trim(),category:v.category,name:v.name.trim(),price:num(v.price),time:v.time.trim()};
     if(await W(()=>v.id?col('services').doc(v.id).update(d):col('services').doc().set(d),'Đã lưu'))closeModal()},
   rep:async v=>{const d={customerName:v.customerName.trim(),phone:normPhone(v.phone),device:v.device.trim(),imei:v.imei.trim(),issue:v.issue.trim(),kind:v.kind,partner:v.partner.trim(),quote:num(v.quote),cost:num(v.cost),note:v.note.trim()};
