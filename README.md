@@ -28,3 +28,5 @@ Push lên nhánh `main` → GitHub Actions tự deploy. Cần secret `FIREBASE_S
 
 - Xóa phông ảnh sản phẩm: [@imgly/background-removal](https://github.com/imgly/background-removal-js) (AGPL-3.0), tải từ CDN khi dùng. Mã nguồn web này công khai tại repo này.
 - Đọc ảnh HEIC: heic-to, heic2any.
+
+- Quét mã vạch: barcode-detector + zxing-wasm (MIT, © Ze-Zheng Wu), đóng gói tại public/vendor/.
